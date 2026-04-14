@@ -4,4 +4,9 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Memora.Core\Memora.Core.csproj" />
+    <ProjectReference Include="..\Memora.Storage\Memora.Storage.csproj" />
+  </ItemGroup>
+
 </Project>
