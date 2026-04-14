@@ -50,6 +50,32 @@ public sealed class ArtifactFactoryTests
     }
 
     [Fact]
+    public void UnknownFrontmatterKey_FailsValidation()
+    {
+        var frontmatter = ArtifactTestBuilder.CreateFrontmatter(ArtifactType.Charter);
+        var sections = ArtifactTestBuilder.CreateSections(ArtifactType.Charter);
+        frontmatter["roadmap_phase"] = "future";
+
+        var result = _factory.Create(frontmatter, ArtifactTestBuilder.CreateBody(sections), sections);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Contains(result.Validation.Issues, issue => issue.Path == "roadmap_phase" && issue.Code == "artifact.frontmatter.key.unknown");
+    }
+
+    [Fact]
+    public void RevisionLessThanOne_FailsValidation()
+    {
+        var frontmatter = ArtifactTestBuilder.CreateFrontmatter(ArtifactType.Charter);
+        var sections = ArtifactTestBuilder.CreateSections(ArtifactType.Charter);
+        frontmatter["revision"] = 0;
+
+        var result = _factory.Create(frontmatter, ArtifactTestBuilder.CreateBody(sections), sections);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Contains(result.Validation.Issues, issue => issue.Path == "revision" && issue.Code == "artifact.revision.invalid");
+    }
+
+    [Fact]
     public void InvalidRelationshipKey_FailsValidation()
     {
         var frontmatter = ArtifactTestBuilder.CreateFrontmatter(ArtifactType.Charter);
