@@ -117,6 +117,24 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
         Assert.Equal(0L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_relationships;"));
     }
 
+    [Fact]
+    public void Rebuild_FromSampleWorkspaceFixture_PopulatesExpectedRows()
+    {
+        using var connection = CreateConnection();
+
+        var result = _rebuilder.Rebuild(connection, GetSampleWorkspacesRootPath());
+
+        Assert.True(result.Success);
+        Assert.Empty(result.Diagnostics);
+        Assert.Equal(1, result.ProjectCount);
+        Assert.Equal(4, result.ArtifactCount);
+        Assert.Equal(4, result.RevisionCount);
+        Assert.Equal(5, result.RelationshipCount);
+        Assert.Equal("demo-project", ExecuteScalar<string>(connection, "SELECT project_id FROM projects LIMIT 1;"));
+        Assert.Equal(2L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions WHERE is_canonical = 1;"));
+        Assert.Equal(1L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions WHERE is_canonical = 0 AND artifact_id = 'PLN-001';"));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_workspacesRootPath))
@@ -160,6 +178,23 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
         using var command = connection.CreateCommand();
         command.CommandText = commandText;
         command.ExecuteNonQuery();
+    }
+
+    private static string GetSampleWorkspacesRootPath()
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "Memora.sln")))
+            {
+                return Path.Combine(current.FullName, "samples", "workspaces");
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate the repository root containing Memora.sln.");
     }
 
     private static PlanArtifact CreatePlanArtifact(string projectId, ArtifactStatus status, int revision) =>

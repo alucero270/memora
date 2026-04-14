@@ -7,6 +7,19 @@ public sealed class LifecycleTransitionValidatorTests
 {
     private readonly ArtifactFactory _factory = new();
 
+    [Theory]
+    [InlineData(ArtifactStatus.Proposed, ArtifactStatus.Draft)]
+    [InlineData(ArtifactStatus.Draft, ArtifactStatus.Approved)]
+    [InlineData(ArtifactStatus.Draft, ArtifactStatus.Deprecated)]
+    [InlineData(ArtifactStatus.Approved, ArtifactStatus.Superseded)]
+    [InlineData(ArtifactStatus.Approved, ArtifactStatus.Deprecated)]
+    public void AllowedTransitions_AreAccepted(ArtifactStatus from, ArtifactStatus to)
+    {
+        var result = LifecycleTransitionValidator.Validate(from, to);
+
+        Assert.True(result.IsValid);
+    }
+
     [Fact]
     public void ProposedToApproved_IsRejected()
     {
@@ -14,14 +27,6 @@ public sealed class LifecycleTransitionValidatorTests
 
         Assert.False(result.IsValid);
         Assert.Contains(result.Issues, issue => issue.Code == "artifact.lifecycle.transition.invalid");
-    }
-
-    [Fact]
-    public void ProposedToDraft_IsAllowed()
-    {
-        var result = LifecycleTransitionValidator.Validate(ArtifactStatus.Proposed, ArtifactStatus.Draft);
-
-        Assert.True(result.IsValid);
     }
 
     [Fact]
@@ -34,6 +39,19 @@ public sealed class LifecycleTransitionValidatorTests
 
         Assert.False(result.IsValid);
         Assert.Contains(result.Issues, issue => issue.Path == "revision" && issue.Code == "artifact.lifecycle.revision.required");
+    }
+
+    [Fact]
+    public void LifecycleTransition_WithChangedIdentity_IsRejected()
+    {
+        var current = CreateArtifact(ArtifactStatus.Draft, 1);
+        var next = current with { Id = "CHR-999", ProjectId = "other-project" };
+
+        var result = LifecycleTransitionValidator.Validate(current, next);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Issues, issue => issue.Path == "id" && issue.Code == "artifact.lifecycle.id.mismatch");
+        Assert.Contains(result.Issues, issue => issue.Path == "project_id" && issue.Code == "artifact.lifecycle.project_id.mismatch");
     }
 
     private ProjectCharterArtifact CreateArtifact(ArtifactStatus status, int revision)

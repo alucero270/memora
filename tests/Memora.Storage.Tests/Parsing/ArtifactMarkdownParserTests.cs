@@ -75,4 +75,50 @@ public sealed class ArtifactMarkdownParserTests
         Assert.Null(result.Artifact);
         Assert.Contains(result.Validation.Issues, issue => issue.Code == "frontmatter.parse");
     }
+
+    [Fact]
+    public void InvalidRelationshipTargetInMarkdown_IsRejectedCleanly()
+    {
+        const string markdown = """
+                                 ---
+                                 id: CHR-001
+                                 project_id: memora
+                                 type: charter
+                                 status: draft
+                                 title: Memora charter
+                                 created_at: 2026-04-14T12:00:00Z
+                                 updated_at: 2026-04-14T12:30:00Z
+                                 revision: 1
+                                 tags: []
+                                 provenance: user
+                                 reason: schema foundation
+                                 links:
+                                   depends_on: []
+                                   affects:
+                                     - Architecture overview
+                                   derived_from: []
+                                   supersedes: []
+                                 ---
+                                 ## Problem Statement
+                                 Durable project memory is missing.
+
+                                 ## Primary Users / Stakeholders
+                                 Product and engineering teams.
+
+                                 ## Current Pain
+                                 Context is lost between iterations.
+
+                                 ## Desired Outcome
+                                 Artifact state remains structured and reviewable.
+
+                                 ## Definition of Success
+                                 Teams can validate artifacts deterministically.
+                                 """;
+
+        var result = _parser.Parse(markdown);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Null(result.Artifact);
+        Assert.Contains(result.Validation.Issues, issue => issue.Path == "links.affects[0]" && issue.Code == "artifact.links.value.invalid");
+    }
 }

@@ -93,6 +93,19 @@ public sealed class ArtifactFileStoreTests : IDisposable
         Assert.Contains("does not match workspace project", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Save_DuplicateRevisionFile_IsRejected()
+    {
+        var workspace = CreateWorkspace();
+        var artifact = CreatePlanArtifact(status: ArtifactStatus.Approved, revision: 1);
+
+        _store.Save(workspace, artifact);
+
+        var exception = Assert.Throws<IOException>(() => _store.Save(workspace, artifact));
+
+        Assert.Contains("already exists", exception.Message, StringComparison.Ordinal);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_rootPath))
