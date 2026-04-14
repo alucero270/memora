@@ -29,7 +29,7 @@ Memora solves this by making project state:
 > explicit, structured, and persistent.
 
 See the project charter:
-- `docs/charter.md` :contentReference[oaicite:0]{index=0}
+- `docs/charter.md`
 
 ---
 
@@ -63,7 +63,7 @@ See:
 ## Repository Structure
 
 See full structure:
-- `docs/repo-structure.md` :contentReference[oaicite:1]{index=1}
+- `docs/repo-structure.md`
 
 ---
 
@@ -89,7 +89,7 @@ Memora is built in stages:
 - Milestone 3 — Agent Loop
 
 See:
-- `docs/milestones.md` :contentReference[oaicite:2]{index=2}
+- `docs/milestones.md`
 
 ---
 
@@ -97,23 +97,11 @@ See:
 
 ### 1. Scaffold the repository
 
-Use the scaffold prompt:
+Run:
 
-- `prompts/scaffold.md` :contentReference[oaicite:3]{index=3}
-
----
-
-### 2. Generate milestones and issues
-
-- `prompts/milestones-and-issues.md` :contentReference[oaicite:4]{index=4}
-
----
-
-### 3. Begin implementation
-
-Start with:
-
-- `prompts/artifact-schema.md` :contentReference[oaicite:5]{index=5}
+- `dotnet build Memora.sln`
+- `build.cmd`
+- `build.sh`
 
 ---
 
@@ -135,7 +123,7 @@ Memora focuses on:
 - approval-governed updates
 
 See:
-- `docs/scope.md` :contentReference[oaicite:6]{index=6}
+- `docs/scope.md`
 
 ---
 
