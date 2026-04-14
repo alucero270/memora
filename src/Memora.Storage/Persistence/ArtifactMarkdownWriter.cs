@@ -65,10 +65,10 @@ public sealed class ArtifactMarkdownWriter
     private static void AppendLinks(StringBuilder builder, ArtifactLinks links)
     {
         builder.AppendLine("links:");
-        AppendStringList(builder, "depends_on", links.DependsOn, 2);
-        AppendStringList(builder, "affects", links.Affects, 2);
-        AppendStringList(builder, "derived_from", links.DerivedFrom, 2);
-        AppendStringList(builder, "supersedes", links.Supersedes, 2);
+        AppendStringList(builder, "depends_on", links.GetTargetArtifactIds(ArtifactRelationshipKind.DependsOn), 2);
+        AppendStringList(builder, "affects", links.GetTargetArtifactIds(ArtifactRelationshipKind.Affects), 2);
+        AppendStringList(builder, "derived_from", links.GetTargetArtifactIds(ArtifactRelationshipKind.DerivedFrom), 2);
+        AppendStringList(builder, "supersedes", links.GetTargetArtifactIds(ArtifactRelationshipKind.Supersedes), 2);
     }
 
     private static void AppendStringList(StringBuilder builder, string key, IReadOnlyList<string> values, int indent = 0)

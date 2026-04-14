@@ -52,7 +52,8 @@ public sealed class ArtifactMarkdownParserTests
         var artifact = Assert.IsType<ProjectCharterArtifact>(result.Artifact);
         Assert.Equal("memora", artifact.ProjectId);
         Assert.Single(artifact.Links.Affects);
-        Assert.Equal("ADR-001", artifact.Links.Affects[0]);
+        Assert.Equal(ArtifactRelationshipKind.Affects, artifact.Links.Affects[0].Kind);
+        Assert.Equal("ADR-001", artifact.Links.Affects[0].TargetArtifactId);
     }
 
     [Fact]
