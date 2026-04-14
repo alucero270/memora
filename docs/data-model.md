@@ -110,6 +110,13 @@ Filesystem layout:
 ```text
 <workspace>/
   canonical/
+    charters/
+    decisions/
+    plans/
+    constraints/
+    questions/
+    outcomes/
+    repo/
   drafts/
   summaries/
   project.json
@@ -120,6 +127,7 @@ Rules:
 - `canonical/` contains only approved artifacts
 - `drafts/` contains proposed and editable artifacts
 - `summaries/` contains supporting session-level information
+- persisted artifact revisions are append-only markdown files
 - the filesystem is the source of truth
 
 ## Index Model
