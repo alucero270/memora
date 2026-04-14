@@ -18,6 +18,9 @@ public sealed class ArtifactFactoryTests
         Assert.True(result.Validation.IsValid);
         var artifact = Assert.IsType<ProjectCharterArtifact>(result.Artifact);
         Assert.Equal("CHR-001", artifact.Id);
+        Assert.Single(artifact.Links.Affects);
+        Assert.Equal(ArtifactRelationshipKind.Affects, artifact.Links.Affects[0].Kind);
+        Assert.Equal("ADR-001", artifact.Links.Affects[0].TargetArtifactId);
     }
 
     [Fact]
@@ -58,6 +61,20 @@ public sealed class ArtifactFactoryTests
 
         Assert.False(result.Validation.IsValid);
         Assert.Contains(result.Validation.Issues, issue => issue.Path == "links.related_to" && issue.Code == "artifact.links.key.invalid");
+    }
+
+    [Fact]
+    public void InvalidRelationshipTarget_FailsValidation()
+    {
+        var frontmatter = ArtifactTestBuilder.CreateFrontmatter(ArtifactType.Charter);
+        var sections = ArtifactTestBuilder.CreateSections(ArtifactType.Charter);
+        var links = (Dictionary<string, object?>)frontmatter["links"]!;
+        links["affects"] = new List<object?> { "Architecture overview" };
+
+        var result = _factory.Create(frontmatter, ArtifactTestBuilder.CreateBody(sections), sections);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Contains(result.Validation.Issues, issue => issue.Path == "links.affects[0]" && issue.Code == "artifact.links.value.invalid");
     }
 
     [Fact]

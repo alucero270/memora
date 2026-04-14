@@ -661,20 +661,39 @@ public sealed class ArtifactFactory
 
         foreach (var key in linksMap.Keys)
         {
-            if (!ArtifactFrontmatterRules.AllowedRelationshipKeys.Contains(key))
+            if (!ArtifactLinks.TryParseKind(key, out _))
             {
                 collector.Add("artifact.links.key.invalid", $"Relationship key '{key}' is not allowed in links.", $"links.{key}");
             }
         }
 
-        return new ArtifactLinks(
-            ReadArtifactIdList(linksMap, "depends_on", collector),
-            ReadArtifactIdList(linksMap, "affects", collector),
-            ReadArtifactIdList(linksMap, "derived_from", collector),
-            ReadArtifactIdList(linksMap, "supersedes", collector));
+        return new ArtifactLinks(ReadRelationships(linksMap, collector));
     }
 
-    private static IReadOnlyList<string> ReadArtifactIdList(IReadOnlyDictionary<string, object?> linksMap, string key, ValidationCollector collector)
+    private static IReadOnlyList<ArtifactRelationship> ReadRelationships(
+        IReadOnlyDictionary<string, object?> linksMap,
+        ValidationCollector collector)
+    {
+        var relationships = new List<ArtifactRelationship>();
+
+        foreach (var key in ArtifactLinks.FrontmatterKeys)
+        {
+            if (!ArtifactLinks.TryParseKind(key, out var kind))
+            {
+                continue;
+            }
+
+            relationships.AddRange(ReadRelationshipTargets(linksMap, key, kind, collector));
+        }
+
+        return relationships;
+    }
+
+    private static IReadOnlyList<ArtifactRelationship> ReadRelationshipTargets(
+        IReadOnlyDictionary<string, object?> linksMap,
+        string key,
+        ArtifactRelationshipKind kind,
+        ValidationCollector collector)
     {
         if (!linksMap.TryGetValue(key, out var rawValue))
         {
@@ -687,7 +706,7 @@ public sealed class ArtifactFactory
             return [];
         }
 
-        var artifactIds = new List<string>(listValue.Count);
+        var relationships = new List<ArtifactRelationship>(listValue.Count);
 
         for (var index = 0; index < listValue.Count; index++)
         {
@@ -697,10 +716,10 @@ public sealed class ArtifactFactory
                 continue;
             }
 
-            artifactIds.Add(stringValue);
+            relationships.Add(new ArtifactRelationship(kind, stringValue));
         }
 
-        return artifactIds;
+        return relationships;
     }
 
     private static bool HasAcceptanceCriteria(string content)

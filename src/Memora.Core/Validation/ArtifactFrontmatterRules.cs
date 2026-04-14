@@ -20,14 +20,6 @@ public static class ArtifactFrontmatterRules
         "links"
     };
 
-    private static readonly IReadOnlySet<string> RelationshipKeys = new HashSet<string>(StringComparer.Ordinal)
-    {
-        "depends_on",
-        "affects",
-        "derived_from",
-        "supersedes"
-    };
-
     public static IReadOnlySet<string> GetAllowedFrontmatterKeys(ArtifactType artifactType)
     {
         var keys = new HashSet<string>(BaseKeys, StringComparer.Ordinal);
@@ -64,5 +56,6 @@ public static class ArtifactFrontmatterRules
         return keys;
     }
 
-    public static IReadOnlySet<string> AllowedRelationshipKeys => RelationshipKeys;
+    public static IReadOnlySet<string> AllowedRelationshipKeys =>
+        new HashSet<string>(ArtifactLinks.FrontmatterKeys, StringComparer.Ordinal);
 }
