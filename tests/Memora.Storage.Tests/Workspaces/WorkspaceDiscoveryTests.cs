@@ -26,9 +26,11 @@ public sealed class WorkspaceDiscoveryTests : IDisposable
         Assert.Equal(Path.Combine(workspaceRootPath, "canonical"), workspace.CanonicalRootPath);
         Assert.Equal(Path.Combine(workspaceRootPath, "drafts"), workspace.DraftsRootPath);
         Assert.Equal(Path.Combine(workspaceRootPath, "summaries"), workspace.SummariesRootPath);
+        Assert.Equal(Path.Combine(workspace.CanonicalRootPath, "charters"), workspace.CanonicalChartersPath);
         Assert.Equal(Path.Combine(workspace.CanonicalRootPath, "decisions"), workspace.CanonicalDecisionsPath);
         Assert.Equal(Path.Combine(workspace.CanonicalRootPath, "plans"), workspace.CanonicalPlansPath);
         Assert.Equal(Path.Combine(workspace.CanonicalRootPath, "constraints"), workspace.CanonicalConstraintsPath);
+        Assert.Equal(Path.Combine(workspace.CanonicalRootPath, "questions"), workspace.CanonicalQuestionsPath);
         Assert.Equal(Path.Combine(workspace.CanonicalRootPath, "outcomes"), workspace.CanonicalOutcomesPath);
         Assert.Equal(Path.Combine(workspace.CanonicalRootPath, "repo"), workspace.CanonicalRepoPath);
     }

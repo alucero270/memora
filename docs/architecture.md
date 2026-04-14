@@ -140,9 +140,11 @@ A workspace represents a project.
 ```text
 <workspace-root>/
   canonical/
+    charters/
     decisions/
     plans/
     constraints/
+    questions/
     outcomes/
     repo/
   drafts/
@@ -153,6 +155,7 @@ A workspace represents a project.
 Rules:
 
 - only approved artifacts live in `canonical/`
+- canonical artifact revisions are append-only markdown files
 - drafts and proposals live in `drafts/`
 - summaries are supporting and non-canonical
 - workspaces typically live outside the product repo
