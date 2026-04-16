@@ -9,6 +9,7 @@ public sealed class LifecycleTransitionValidatorTests
 
     [Theory]
     [InlineData(ArtifactStatus.Proposed, ArtifactStatus.Draft)]
+    [InlineData(ArtifactStatus.Proposed, ArtifactStatus.Deprecated)]
     [InlineData(ArtifactStatus.Draft, ArtifactStatus.Approved)]
     [InlineData(ArtifactStatus.Draft, ArtifactStatus.Deprecated)]
     [InlineData(ArtifactStatus.Approved, ArtifactStatus.Superseded)]

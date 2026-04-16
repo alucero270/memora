@@ -8,6 +8,7 @@ public static class LifecycleTransitionValidator
         new HashSet<(ArtifactStatus From, ArtifactStatus To)>
         {
             (ArtifactStatus.Proposed, ArtifactStatus.Draft),
+            (ArtifactStatus.Proposed, ArtifactStatus.Deprecated),
             (ArtifactStatus.Draft, ArtifactStatus.Approved),
             (ArtifactStatus.Draft, ArtifactStatus.Deprecated),
             (ArtifactStatus.Approved, ArtifactStatus.Superseded),
