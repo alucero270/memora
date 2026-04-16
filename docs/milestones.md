@@ -21,62 +21,59 @@ Includes:
 Outcome: Memora can store, validate, version, and index structured project
 artifacts using filesystem truth and a rebuildable SQLite index.
 
-## Milestone 2 - Human Loop
+## Milestone 2 - Relationship + Traceability Layer
 
-Goal: turn planning input into structured, reviewable memory through an
-approval workflow.
-
-Includes:
-
-- planning intake model
-- draft artifact generation from planning input
-- session summary generation
-- approval queue model
-- editable draft flow
-- approve and reject workflow
-- revision diff model
-- minimal local operator UI
-- tests and validation for planning-to-draft and approval flow
-
-Outcome: a human can import planning material, review generated drafts, edit
-them, and approve canonical memory safely.
-
-## Milestone 3 - Agent Loop
-
-Goal: allow agents to consume grounded context and return structured proposals
-without bypassing governance.
+Goal: persist typed relationships and expose deterministic traceability,
+dependency, and impact queries across approved artifacts.
 
 Includes:
 
-- deterministic context package builder
-- deterministic ranking engine
-- agent interaction contract
-- OpenAPI artifact and context endpoints
-- MCP server surface
-- proposal submission path
-- outcome recording path
-- context viewer in the local UI
-- tests for context assembly and proposal-only flow
+- relationship persistence
+- relationship query model
+- incoming and outgoing relationship queries
+- traceability query model
+- dependency and impact traceability queries
+- tests and validation for relationship and traceability behavior
 
-Outcome: agents can request grounded context, submit proposals and outcomes,
-and operate against Memora without direct canonical writes.
+Outcome: Memora can store and query explicit artifact relationships as durable,
+explainable understanding data without taking on broad retrieval or graph
+system responsibilities.
 
-## Milestone 4 - Integration Expansion
+## Milestone 3 - Context Assembly Core
 
-Goal: expand Memora's provider-facing compatibility while preserving the same
-core contract.
+Goal: assemble deterministic context bundles from approved artifacts with
+explicit inclusion reasoning and stable ordering.
 
 Includes:
 
-- hardened MCP tools and resources contracts
-- OpenWebUI-compatible OpenAPI usage path
-- Claude-oriented integration shell and config guidance
-- Codex-oriented integration shell and config guidance
-- provider-facing integration strategy documentation
-- integration-level validation for MCP and OpenAPI surfaces
+- deterministic context bundle builder
+- inclusion reasoning and deterministic ranking rules
+- context bundle models
+- OpenAPI context bundle endpoints
+- MCP context assembly surface
+- tests and validation for context assembly behavior
 
-Outcome: Memora becomes easier to connect to common agent ecosystems without
-changing core truth, lifecycle, or storage rules.
+Outcome: Memora can build grounded, task-oriented context bundles that explain
+why each artifact was included and preserve deterministic understanding-first
+behavior.
+
+## Milestone 4 - Understanding Outputs
+
+Goal: produce basic human-readable understanding outputs from context and
+traceability data without changing Memora's core responsibilities.
+
+Includes:
+
+- understanding output models
+- context views
+- traceability views
+- component understanding outputs
+- output strategy documentation
+- validation for understanding outputs
+
+Outcome: Memora can turn approved artifacts, relationships, and context bundles
+into clear understanding outputs that remain grounded in canonical project
+memory.
 
 ## Milestone 5 - Workflow Hardening
 
@@ -119,7 +116,6 @@ Includes:
 - deterministic retrieval optimization
 - cached context package support
 - expanded relationship traversal
-- optional semantic retrieval extension point design
 - retrieval evolution documentation
 
 Outcome: Memora retrieval becomes faster and richer while keeping deterministic
@@ -145,12 +141,12 @@ Machina and other runtimes.
 ### Band 1 - Core Product Build
 
 - Milestone 1 - Memory Core
-- Milestone 2 - Human Loop
-- Milestone 3 - Agent Loop
+- Milestone 2 - Relationship + Traceability Layer
+- Milestone 3 - Context Assembly Core
 
 ### Band 2 - Usability And Ecosystem Fit
 
-- Milestone 4 - Integration Expansion
+- Milestone 4 - Understanding Outputs
 - Milestone 5 - Workflow Hardening
 
 ### Band 3 - Automation And Runtime Evolution
