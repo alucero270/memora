@@ -15,17 +15,25 @@ Provides the local operator interface for Memora.
 - indexing logic
 
 ## Current Shell
-- runs as a minimal local ASP.NET Core shell
-- reads workspace files through `Memora.Storage`
-- uses a writable local copy of `samples/workspaces` unless `MemoraUi__WorkspacesRoot` is set
-- supports project selection, artifact browsing, draft editing, and approval review previews
+- runs as a styled local ASP.NET Core shell
+- reads workspace files through shared core and storage services
+- uses a writable local copy of `samples/workspaces` unless `MemoraUi__WorkspacesRoot` or `MEMORA_WORKSPACES_ROOT` is set
+- supports project selection, artifact browsing, draft editing, approval review previews, and a context viewer route
 
 ## Honest Scope
 - draft edits write new draft revisions to the selected workspace root
 - approval review surfaces are wired to current core diff and queue behavior
 - approval and rejection persistence are intentionally not claimed in this slice
 
+## Key Areas
+
+- `Program.cs`: host wiring, default workspace root behavior, and route registration
+- `Operator/LocalOperatorWorkspaceService.cs`: project, artifact, queue, edit, and review models for the operator shell
+- `Rendering/OperatorShellPageRenderer.cs`: styled operator shell HTML rendering
+- `ContextViewer/FileSystemContextViewerService.cs`: shared context-builder-backed viewer at `/context-viewer`
+
 ## Local Development
 - the default development launch profile listens on `http://127.0.0.1:5080`
 - run it alongside `Memora.Api` on `http://127.0.0.1:5081` to avoid local port collisions
 - point `MemoraUi__WorkspacesRoot` or `MEMORA_WORKSPACES_ROOT` at the same workspace root when you want both hosts to inspect the same files
+- if no workspace root is configured, the UI boots from a writable local copy of `samples/workspaces`

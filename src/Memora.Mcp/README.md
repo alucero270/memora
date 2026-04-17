@@ -11,3 +11,13 @@ Exposes Memora through MCP as the primary provider-facing protocol.
 
 ## Does NOT contain
 - business logic beyond protocol adaptation
+
+## Key Areas
+
+- `Server/MemoraMcpServer.cs`: tool and resource definitions plus contract forwarding
+
+## Current Scope
+
+- the current implementation is a thin adapter over `IAgentInteractionService`
+- it exposes context assembly, proposal, update, and outcome operations
+- transport hosting and broader MCP ergonomics are intentionally still thin
