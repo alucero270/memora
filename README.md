@@ -1,151 +1,85 @@
 # Memora
 
-Memora is a **local-first structured memory and governance system**
-for AI-assisted software development.
+Memora is a local-first structured memory and governance system for
+AI-assisted software development.
 
-It ensures that planning, decisions, constraints, and outcomes are:
+It is built around a few non-negotiable rules:
 
-- structured
-- versioned
-- linked
-- approval-controlled
-- durable across sessions
+- filesystem is the canonical source of truth
+- SQLite is derived and rebuildable
+- retrieval is deterministic and explainable
+- agents may propose changes in v1, but they do not directly write canonical truth
+- lifecycle and approval rules are enforced in core
 
----
+## What This Checkout Contains
 
-## Why Memora Exists
+This checkout includes working slices across:
 
-AI tools improve execution, but project context is often lost between sessions.
+- core artifact schemas, lifecycle rules, validation, editing, approval queue, and diffs
+- filesystem parsing and persistence for canonical, draft, and summary artifacts
+- SQLite rebuild-from-files indexing
+- deterministic context ranking, inclusion reasoning, and layered context assembly
+- a minimal local HTTP API for project lookup, context assembly, proposals, updates, and outcomes
+- a thin MCP surface over the shared agent interaction contract
+- a styled local operator UI plus a context viewer route
 
-This leads to:
+Important limits still apply:
 
-- repeated explanations
-- inconsistent behavior
-- hallucinated continuity
-- drift between planning and execution
+- canonical truth remains filesystem-first and approval-governed
+- no semantic or vector retrieval exists in core v1
+- the UI shows review previews, but it does not claim full approval or rejection persistence
+- the MCP layer is currently a thin in-process adapter surface, not a production transport host
 
-Memora solves this by making project state:
+## Start Here
 
-> explicit, structured, and persistent.
+If you are orienting yourself in the repo, this order works well:
 
-See the project charter:
-- `docs/charter.md`
+1. [docs/current-state.md](docs/current-state.md)
+2. [docs/architecture.md](docs/architecture.md)
+3. [docs/milestones.md](docs/milestones.md)
+4. [src/README.md](src/README.md)
+5. [tests/README.md](tests/README.md)
 
----
+## Local Run
 
-## Core Principles
-
-- Filesystem is the source of truth
-- SQLite is a derived index
-- Retrieval is deterministic and explainable
-- Agents may propose, not write canonical state
-- All changes require approval
-
----
-
-## System Overview
-
-Memora is composed of modular components:
-
-- **Core** → schemas, lifecycle, validation
-- **Storage** → markdown + frontmatter parsing
-- **Index** → SQLite indexing (rebuildable)
-- **Context** → deterministic retrieval + ranking
-- **API** → OpenAPI surface
-- **MCP** → primary integration layer
-- **UI** → inspection and approval interface
-
-See:
-- `docs/architecture.md`
-
----
-
-## Repository Structure
-
-See full structure:
-- `docs/repo-structure.md`
-
----
-
-## How It Works (v1 Flow)
-
-1. Planning input is ingested
-2. Draft artifacts are generated
-3. Human reviews and approves artifacts
-4. Canonical memory is stored (filesystem)
-5. Context is retrieved deterministically
-6. Agents consume context via MCP
-7. Agents propose updates or outcomes
-8. Human approves changes
-
----
-
-## Milestones
-
-Memora is built in stages:
-
-- Milestone 1 — Memory Core
-- Milestone 2 — Human Loop
-- Milestone 3 — Agent Loop
-
-See:
-- `docs/milestones.md`
-
----
-
-## Getting Started
-
-### 1. Scaffold the repository
-
-Run:
+Build everything:
 
 - `dotnet build Memora.sln`
-- `build.cmd`
-- `build.sh`
 
----
+Run the UI:
 
-## Development Rules
+- startup project: `src/Memora.Ui`
+- default dev URL: `http://127.0.0.1:5080`
+- when no workspace root is configured, the UI uses a writable local copy of `samples/workspaces`
 
-All contributors must follow:
+Run the API:
 
-- `AGENTS.md`
-- `CONTRIBUTING.md`
+- startup project: `src/Memora.Api`
+- default dev URL: `http://127.0.0.1:5081`
+- set `MEMORA_WORKSPACES_ROOT` or `Memora:WorkspacesRootPath` to use the file-backed service
 
----
+Smallest useful validation:
 
-## Scope (v1)
+- `dotnet test tests/Memora.Core.Tests/Memora.Core.Tests.csproj`
+- `dotnet test tests/Memora.Storage.Tests/Memora.Storage.Tests.csproj`
+- `dotnet test tests/Memora.Index.Tests/Memora.Index.Tests.csproj`
+- `dotnet test tests/Memora.Context.Tests/Memora.Context.Tests.csproj`
+- `dotnet test tests/Memora.Api.Tests/Memora.Api.Tests.csproj`
+- `dotnet test tests/Memora.Mcp.Tests/Memora.Mcp.Tests.csproj`
+- `dotnet test tests/Memora.Ui.Tests/Memora.Ui.Tests.csproj`
 
-Memora focuses on:
+## Repo Map
 
-- structured project memory
-- deterministic retrieval
-- approval-governed updates
-
-See:
-- `docs/scope.md`
-
----
-
-## Non-Goals
-
-Memora is not:
-
-- a chat system
-- a vector database
-- a general knowledge base
-- an execution runtime
-
----
+- [docs/](docs/README.md): architecture, scope, roadmap, and current-state docs
+- [samples/](samples/README.md): demo workspaces and fixtures
+- [src/](src/README.md): product code by module boundary
+- [tests/](tests/README.md): automated validation by module
 
 ## Status
 
-Early implementation phase.
+Memora is no longer at scaffold-only status. This checkout contains real
+foundational, integration, and UI slices, but the product is still in an
+early, honesty-first phase where some surfaces are intentionally thin.
 
-Milestone 1 — Memory Core.
-
----
-
-## License
-
-TBD
+Use [docs/current-state.md](docs/current-state.md) for the most accurate
+summary of implemented behavior in this checkout.

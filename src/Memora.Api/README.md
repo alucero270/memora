@@ -13,6 +13,19 @@ Exposes Memora capabilities through a local OpenAPI-compatible service.
 - duplicated core rules
 - duplicated ranking logic
 
+## Key Areas
+
+- `Program.cs`: route registration and service wiring
+- `Services/FileSystemAgentInteractionService.cs`: file-backed project, context, proposal, and outcome flow
+- `Services/UnavailableAgentInteractionService.cs`: guarded fallback when no workspace root is configured
+- `AgentInteractionHttpResults.cs`: maps shared contract results to HTTP responses
+
+## Current Scope
+
+- endpoints are minimal and focused on the shared agent interaction contract
+- the file-backed path is only active when a workspace root is configured
+- this host is intentionally thin and does not claim a full production API surface
+
 ## Local Development
 - the default development launch profile listens on `http://127.0.0.1:5081`
 - set `MEMORA_WORKSPACES_ROOT` or `Memora:WorkspacesRootPath` to a workspace root before exercising file-backed endpoints
