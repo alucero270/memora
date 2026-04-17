@@ -24,3 +24,8 @@ Provides the local operator interface for Memora.
 - draft edits write new draft revisions to the selected workspace root
 - approval review surfaces are wired to current core diff and queue behavior
 - approval and rejection persistence are intentionally not claimed in this slice
+
+## Local Development
+- the default development launch profile listens on `http://127.0.0.1:5080`
+- run it alongside `Memora.Api` on `http://127.0.0.1:5081` to avoid local port collisions
+- point `MemoraUi__WorkspacesRoot` or `MEMORA_WORKSPACES_ROOT` at the same workspace root when you want both hosts to inspect the same files
