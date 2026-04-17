@@ -184,13 +184,7 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
     }
 
     public OutcomeResponse RecordOutcome(RecordOutcomeRequest request) =>
-        new(
-            request.ProjectId,
-            request.ArtifactId,
-            ArtifactStatus.Proposed,
-            0,
-            OutcomeKind.Mixed,
-            [new AgentInteractionError("outcome.not_configured", "Outcome recording service is not configured.", "service")]);
+        RecordOutcomeInternal(request);
 
     private ProjectWorkspace? FindWorkspace(string projectId)
     {
@@ -347,6 +341,63 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
                                 new AgentContextInclusionReason(reason.Code, reason.Description, reason.RelatedArtifactIds)).ToArray()))
                         .ToArray()))
                 .ToArray());
+
+    private OutcomeResponse RecordOutcomeInternal(RecordOutcomeRequest request)
+    {
+        var workspace = FindWorkspace(request.ProjectId);
+        if (workspace is null)
+        {
+            return new OutcomeResponse(
+                request.ProjectId,
+                request.ArtifactId,
+                ArtifactStatus.Proposed,
+                0,
+                OutcomeKind.Mixed,
+                [new AgentInteractionError("project.not_found", $"Project '{request.ProjectId}' was not found.", "project_id")]);
+        }
+
+        var existingArtifacts = LoadArtifacts(workspace, includeDrafts: true, includeSummaries: false, out var loadErrors);
+        if (loadErrors.Count > 0)
+        {
+            return new OutcomeResponse(request.ProjectId, request.ArtifactId, ArtifactStatus.Proposed, 0, OutcomeKind.Mixed, loadErrors);
+        }
+
+        var currentArtifact = existingArtifacts
+            .Where(artifact => string.Equals(artifact.Id, request.ArtifactId, StringComparison.Ordinal))
+            .OrderByDescending(artifact => artifact.Revision)
+            .FirstOrDefault();
+
+        if (currentArtifact is not null && currentArtifact.Type != ArtifactType.Outcome)
+        {
+            return new OutcomeResponse(
+                request.ProjectId,
+                request.ArtifactId,
+                ArtifactStatus.Proposed,
+                0,
+                OutcomeKind.Mixed,
+                [new AgentInteractionError("outcome.artifact_type.invalid", $"Artifact '{request.ArtifactId}' is not an outcome artifact.", "artifact_id")]);
+        }
+
+        var createdAtUtc = currentArtifact?.CreatedAtUtc ?? DateTimeOffset.UtcNow;
+        var revision = currentArtifact?.Revision + 1 ?? 1;
+        var recordedOutcome = CreateArtifact(
+            request.ProjectId,
+            request.ArtifactId,
+            ArtifactType.Outcome,
+            request.Content,
+            ArtifactStatus.Proposed,
+            revision,
+            createdAtUtc,
+            DateTimeOffset.UtcNow);
+
+        if (recordedOutcome.Errors.Count > 0 || recordedOutcome.Artifact is not OutcomeArtifact outcomeArtifact)
+        {
+            return new OutcomeResponse(request.ProjectId, request.ArtifactId, ArtifactStatus.Proposed, 0, OutcomeKind.Mixed, recordedOutcome.Errors);
+        }
+
+        _fileStore.Save(workspace, outcomeArtifact);
+        return new OutcomeResponse(request.ProjectId, request.ArtifactId, outcomeArtifact.Status, outcomeArtifact.Revision, outcomeArtifact.Outcome, []);
+    }
 
     private sealed record CreatedArtifactResult(
         ArtifactDocument? Artifact,

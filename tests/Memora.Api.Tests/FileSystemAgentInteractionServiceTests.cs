@@ -84,6 +84,52 @@ public sealed class FileSystemAgentInteractionServiceTests : IDisposable
         Assert.False(File.Exists(Path.Combine(workspace.DraftsRootPath, "decision", "ADR-102.r0001.md")));
     }
 
+    [Fact]
+    public void RecordOutcome_PersistsOutcomeArtifactInDraftStorage()
+    {
+        var workspace = CreateWorkspace("memora");
+        var service = new FileSystemAgentInteractionService(_workspacesRootPath);
+
+        var response = service.RecordOutcome(
+            new RecordOutcomeRequest(
+                "memora",
+                "OUT-001",
+                CreateOutcomeContent()));
+
+        Assert.True(response.IsSuccess);
+        Assert.Equal(ArtifactStatus.Proposed, response.ResultingStatus);
+        Assert.Equal(OutcomeKind.Success, response.OutcomeKind);
+        Assert.True(File.Exists(Path.Combine(workspace.DraftsRootPath, "outcome", "OUT-001.r0001.md")));
+    }
+
+    [Fact]
+    public void RecordOutcome_InvalidOutcome_ReturnsValidationErrorsAndDoesNotWriteFile()
+    {
+        var workspace = CreateWorkspace("memora");
+        var service = new FileSystemAgentInteractionService(_workspacesRootPath);
+
+        var response = service.RecordOutcome(
+            new RecordOutcomeRequest(
+                "memora",
+                "OUT-002",
+                new ArtifactProposalContent(
+                    "Incomplete outcome",
+                    "agent",
+                    "Missing outcome kind.",
+                    ["outcome"],
+                    new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["What Happened"] = "Outcome data exists.",
+                        ["Why"] = "Need to validate outcome submissions.",
+                        ["Impact"] = "Still missing type-specific outcome data.",
+                        ["Follow-up"] = "Add the missing outcome kind."
+                    })));
+
+        Assert.False(response.IsSuccess);
+        Assert.Contains(response.Errors, error => error.Code == "artifact.frontmatter.missing");
+        Assert.False(File.Exists(Path.Combine(workspace.DraftsRootPath, "outcome", "OUT-002.r0001.md")));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_workspacesRootPath))
@@ -127,6 +173,25 @@ public sealed class FileSystemAgentInteractionServiceTests : IDisposable
             new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["decision_date"] = "2026-04-17"
+            });
+
+    private static ArtifactProposalContent CreateOutcomeContent() =>
+        new(
+            "Execution outcome",
+            "agent",
+            "Need a reviewable outcome record.",
+            ["outcome"],
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["What Happened"] = "Execution completed successfully.",
+                ["Why"] = "Outcome recording should stay proposal-only.",
+                ["Impact"] = "The proposal path can now record structured outcomes.",
+                ["Follow-up"] = "Review and approve the recorded outcome."
+            },
+            AgentArtifactLinks.Empty,
+            new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["outcome"] = "success"
             });
 
     private static ArchitectureDecisionArtifact CreateApprovedDecisionArtifact() =>
