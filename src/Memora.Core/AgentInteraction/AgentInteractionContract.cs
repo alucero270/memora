@@ -112,6 +112,18 @@ public sealed record AgentContextBundle(
 public sealed record GetContextResponse(AgentContextBundle? Bundle, IReadOnlyList<AgentInteractionError> Errors)
     : AgentInteractionResponse(Errors);
 
+public sealed record ProjectLookupResponse(
+    string ProjectId,
+    string? Name,
+    string? Status,
+    IReadOnlyList<AgentInteractionError> Errors)
+    : AgentInteractionResponse(Errors)
+{
+    public string ProjectId { get; } = AgentInteractionContractHelpers.RequireValue(ProjectId, nameof(ProjectId), "Project id is required.");
+    public string? Name { get; } = string.IsNullOrWhiteSpace(Name) ? null : Name.Trim();
+    public string? Status { get; } = string.IsNullOrWhiteSpace(Status) ? null : Status.Trim();
+}
+
 public sealed record ArtifactProposalContent
 {
     public ArtifactProposalContent(
@@ -220,7 +232,9 @@ public sealed record ProposalResponse(
     public ArtifactStatus ResultingStatus { get; } = ResultingStatus;
     public int Revision { get; } = Revision > 0
         ? Revision
-        : throw new ArgumentOutOfRangeException(nameof(Revision), "Revision must be greater than zero.");
+        : Errors.Count == 0
+            ? throw new ArgumentOutOfRangeException(nameof(Revision), "Revision must be greater than zero.")
+            : 0;
 }
 
 public sealed record RecordOutcomeRequest
@@ -260,8 +274,23 @@ public sealed record OutcomeResponse(
     public ArtifactStatus ResultingStatus { get; } = ResultingStatus;
     public int Revision { get; } = Revision > 0
         ? Revision
-        : throw new ArgumentOutOfRangeException(nameof(Revision), "Revision must be greater than zero.");
+        : Errors.Count == 0
+            ? throw new ArgumentOutOfRangeException(nameof(Revision), "Revision must be greater than zero.")
+            : 0;
     public OutcomeKind OutcomeKind { get; } = OutcomeKind;
+}
+
+public interface IAgentInteractionService
+{
+    ProjectLookupResponse GetProject(string projectId);
+
+    GetContextResponse GetContext(GetContextRequest request);
+
+    ProposalResponse ProposeArtifact(ProposeArtifactRequest request);
+
+    ProposalResponse ProposeUpdate(ProposeUpdateRequest request);
+
+    OutcomeResponse RecordOutcome(RecordOutcomeRequest request);
 }
 
 internal static class AgentInteractionContractHelpers
