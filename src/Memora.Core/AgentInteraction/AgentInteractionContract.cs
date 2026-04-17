@@ -132,6 +132,7 @@ public sealed record ArtifactProposalContent
         string reason,
         IReadOnlyList<string>? tags,
         IReadOnlyDictionary<string, string> sections,
+        AgentArtifactLinks? links = null,
         IReadOnlyDictionary<string, object?>? typeSpecificValues = null)
     {
         if (sections is null)
@@ -144,6 +145,7 @@ public sealed record ArtifactProposalContent
         Reason = AgentInteractionContractHelpers.RequireValue(reason, nameof(reason), "Reason is required.");
         Tags = AgentInteractionContractHelpers.NormalizeValues(tags);
         Sections = new Dictionary<string, string>(sections, StringComparer.Ordinal);
+        Links = links ?? AgentArtifactLinks.Empty;
         TypeSpecificValues = typeSpecificValues is null
             ? new Dictionary<string, object?>(StringComparer.Ordinal)
             : new Dictionary<string, object?>(typeSpecificValues, StringComparer.Ordinal);
@@ -159,7 +161,25 @@ public sealed record ArtifactProposalContent
 
     public IReadOnlyDictionary<string, string> Sections { get; }
 
+    public AgentArtifactLinks Links { get; }
+
     public IReadOnlyDictionary<string, object?> TypeSpecificValues { get; }
+}
+
+public sealed record AgentArtifactLinks(
+    IReadOnlyList<string> DependsOn,
+    IReadOnlyList<string> Affects,
+    IReadOnlyList<string> DerivedFrom,
+    IReadOnlyList<string> Supersedes)
+{
+    public IReadOnlyList<string> DependsOn { get; } = AgentInteractionContractHelpers.NormalizeValues(DependsOn);
+    public IReadOnlyList<string> Affects { get; } = AgentInteractionContractHelpers.NormalizeValues(Affects);
+    public IReadOnlyList<string> DerivedFrom { get; } = AgentInteractionContractHelpers.NormalizeValues(DerivedFrom);
+    public IReadOnlyList<string> Supersedes { get; } = AgentInteractionContractHelpers.NormalizeValues(Supersedes);
+
+    public ArtifactLinks ToArtifactLinks() => new(DependsOn, Affects, DerivedFrom, Supersedes);
+
+    public static AgentArtifactLinks Empty { get; } = new([], [], [], []);
 }
 
 public sealed record ProposeArtifactRequest

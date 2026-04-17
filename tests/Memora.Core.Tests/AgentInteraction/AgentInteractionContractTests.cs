@@ -98,6 +98,7 @@ public sealed class AgentInteractionContractTests
                 ["Context"] = "Need deterministic context.",
                 ["Decision"] = "Keep the contract explicit."
             },
+            AgentArtifactLinks.Empty,
             new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["decision_date"] = "2026-04-17"

@@ -5,7 +5,19 @@ using Memora.Core.AgentInteraction;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSingleton<IAgentInteractionService, UnavailableAgentInteractionService>();
+
+var workspacesRootPath = builder.Configuration["Memora:WorkspacesRootPath"] ??
+                         Environment.GetEnvironmentVariable("MEMORA_WORKSPACES_ROOT");
+
+if (string.IsNullOrWhiteSpace(workspacesRootPath))
+{
+    builder.Services.AddSingleton<IAgentInteractionService, UnavailableAgentInteractionService>();
+}
+else
+{
+    builder.Services.AddSingleton<IAgentInteractionService>(_ =>
+        new FileSystemAgentInteractionService(workspacesRootPath));
+}
 
 var app = builder.Build();
 
