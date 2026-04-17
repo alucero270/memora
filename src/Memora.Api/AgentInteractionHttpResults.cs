@@ -11,12 +11,12 @@ internal static class AgentInteractionHttpResults
 
     public static IResult FromProposalResponse(ProposalResponse response) =>
         response.IsSuccess
-            ? Results.Accepted(value: response)
+            ? Results.Json(response, statusCode: StatusCodes.Status202Accepted)
             : FromResponse(response);
 
     public static IResult FromOutcomeResponse(OutcomeResponse response) =>
         response.IsSuccess
-            ? Results.Accepted(value: response)
+            ? Results.Json(response, statusCode: StatusCodes.Status202Accepted)
             : FromResponse(response);
 
     private static IResult FromResponse(AgentInteractionResponse response)
