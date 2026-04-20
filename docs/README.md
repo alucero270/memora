@@ -11,6 +11,7 @@ Docs must describe current implementation honestly and keep roadmap work clearly
 - `current-state.md` for implemented behavior in the current checkout
 - `architecture.md` for module boundaries and system rules
 - `integration-strategy.md` for provider-facing MCP and OpenAPI guidance
+- `understanding-outputs.md` for the current human-readable output strategy
 - `openwebui-openapi.md` for the current Open WebUI companion API path
 - `claude-integration.md` for the current Claude-oriented setup guidance
 - `codex-integration.md` for the current Codex-oriented setup guidance

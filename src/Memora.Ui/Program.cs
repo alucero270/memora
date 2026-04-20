@@ -1,6 +1,8 @@
 using Memora.Ui.ContextViewer;
 using Memora.Ui.Operator;
 using Memora.Ui.Rendering;
+using Memora.Ui.Understanding;
+using Memora.Index.Traceability;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,11 @@ builder.Services.AddSingleton(sp =>
 {
     var options = sp.GetRequiredService<OperatorShellOptions>();
     return new FileSystemContextViewerService(options.NormalizedWorkspacesRootPath);
+});
+builder.Services.AddSingleton(sp =>
+{
+    var options = sp.GetRequiredService<OperatorShellOptions>();
+    return new FileSystemUnderstandingOutputService(options.NormalizedWorkspacesRootPath);
 });
 
 var app = builder.Build();
@@ -138,6 +145,47 @@ app.MapGet(
         }
 
         var page = service.BuildPage(new ContextViewerRequest(projectId, taskDescription, includeDraftArtifacts, includeLayer3History));
+        return Results.Content(service.RenderPage(page), "text/html");
+    });
+
+app.MapGet(
+    "/understanding",
+    (HttpRequest request, FileSystemUnderstandingOutputService service) =>
+    {
+        var projectId = request.Query["projectId"].ToString();
+        var taskDescription = request.Query["taskDescription"].ToString();
+        var artifactId = request.Query["artifactId"].ToString();
+        var includeDraftArtifacts = string.Equals(request.Query["includeDraftArtifacts"], "true", StringComparison.OrdinalIgnoreCase);
+        var includeLayer3History = string.Equals(request.Query["includeLayer3History"], "true", StringComparison.OrdinalIgnoreCase);
+        var traceabilityKind = Enum.TryParse<TraceabilityQueryKind>(request.Query["traceabilityKind"], ignoreCase: true, out var parsedKind)
+            ? parsedKind
+            : TraceabilityQueryKind.Direct;
+
+        if (string.IsNullOrWhiteSpace(projectId) || string.IsNullOrWhiteSpace(taskDescription))
+        {
+            var emptyPage = new UnderstandingPageModel(
+                projectId,
+                taskDescription,
+                artifactId,
+                traceabilityKind,
+                includeDraftArtifacts,
+                includeLayer3History,
+                null,
+                null,
+                null,
+                null);
+
+            return Results.Content(service.RenderPage(emptyPage), "text/html");
+        }
+
+        var page = service.BuildPage(new UnderstandingRequest(
+            projectId,
+            taskDescription,
+            artifactId,
+            traceabilityKind,
+            includeDraftArtifacts,
+            includeLayer3History));
+
         return Results.Content(service.RenderPage(page), "text/html");
     });
 

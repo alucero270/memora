@@ -18,12 +18,13 @@ Provides the local operator interface for Memora.
 - runs as a styled local ASP.NET Core shell
 - reads workspace files through shared core and storage services
 - uses a writable local copy of `samples/workspaces` unless `MemoraUi__WorkspacesRoot` or `MEMORA_WORKSPACES_ROOT` is set
-- supports project selection, artifact browsing, draft editing, approval review previews, and a context viewer route
+- supports project selection, artifact browsing, draft editing, approval review previews, a context viewer route, and an understanding-output route
 
 ## Honest Scope
 - draft edits write new draft revisions to the selected workspace root
 - approval review surfaces are wired to current core diff and queue behavior
 - approval and rejection persistence are intentionally not claimed in this slice
+- understanding outputs remain read-only and are grounded in the shared context builder plus rebuildable traceability queries
 
 ## Key Areas
 
@@ -31,6 +32,7 @@ Provides the local operator interface for Memora.
 - `Operator/LocalOperatorWorkspaceService.cs`: project, artifact, queue, edit, and review models for the operator shell
 - `Rendering/OperatorShellPageRenderer.cs`: styled operator shell HTML rendering
 - `ContextViewer/FileSystemContextViewerService.cs`: shared context-builder-backed viewer at `/context-viewer`
+- `Understanding/FileSystemUnderstandingOutputService.cs`: read-only understanding page at `/understanding`
 
 ## Local Development
 - the default development launch profile listens on `http://127.0.0.1:5080`
