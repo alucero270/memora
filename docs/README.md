@@ -10,6 +10,7 @@ Docs must describe current implementation honestly and keep roadmap work clearly
 
 - `current-state.md` for implemented behavior in the current checkout
 - `architecture.md` for module boundaries and system rules
+- `integration-strategy.md` for provider-facing MCP and OpenAPI guidance
 - `milestones.md` for roadmap sequencing
 - `repo-structure.md` for folder-level navigation
 
