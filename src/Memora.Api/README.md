@@ -23,10 +23,12 @@ Exposes Memora capabilities through a local OpenAPI-compatible service.
 ## Current Scope
 
 - endpoints are minimal and focused on the shared agent interaction contract
+- the host publishes a companion OpenAPI document at `/openapi.json`
 - the file-backed path is only active when a workspace root is configured
 - this host is intentionally thin and does not claim a full production API surface
 
 ## Local Development
 - the default development launch profile listens on `http://127.0.0.1:5081`
+- verify the current OpenAPI document at `http://127.0.0.1:5081/openapi.json`
 - set `MEMORA_WORKSPACES_ROOT` or `Memora:WorkspacesRootPath` to a workspace root before exercising file-backed endpoints
 - this host is intended to run alongside `Memora.Ui`, which uses its own development port
