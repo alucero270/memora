@@ -12,6 +12,7 @@ Docs must describe current implementation honestly and keep roadmap work clearly
 - `architecture.md` for module boundaries and system rules
 - `integration-strategy.md` for provider-facing MCP and OpenAPI guidance
 - `openwebui-openapi.md` for the current Open WebUI companion API path
+- `claude-integration.md` for the current Claude-oriented setup guidance
 - `milestones.md` for roadmap sequencing
 - `repo-structure.md` for folder-level navigation
 
