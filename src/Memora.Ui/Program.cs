@@ -1,115 +1,161 @@
+using Memora.Ui.ContextViewer;
 using Memora.Ui.Operator;
 using Memora.Ui.Rendering;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var configuredWorkspacesRoot = builder.Configuration["MemoraUi:WorkspacesRoot"];
-var shellOptions = string.IsNullOrWhiteSpace(configuredWorkspacesRoot)
-    ? new OperatorShellOptions(
-        SampleWorkspacesBootstrapper.PrepareDefaultRoot(builder.Environment.ContentRootPath),
-        UsesSeededSampleRoot: true)
-    : new OperatorShellOptions(
-        Path.GetFullPath(configuredWorkspacesRoot),
-        UsesSeededSampleRoot: false);
-
-builder.Services.AddSingleton(shellOptions);
+builder.Services.AddSingleton(sp =>
+    BuildShellOptions(
+        sp.GetRequiredService<IConfiguration>(),
+        sp.GetRequiredService<IHostEnvironment>()));
 builder.Services.AddSingleton<LocalOperatorWorkspaceService>();
+builder.Services.AddSingleton(sp =>
+{
+    var options = sp.GetRequiredService<OperatorShellOptions>();
+    return new FileSystemContextViewerService(options.NormalizedWorkspacesRootPath);
+});
 
 var app = builder.Build();
 
-app.MapGet("/", (LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
-{
-    var projects = service.GetProjects();
-    var html = OperatorShellPageRenderer.RenderHome(options, projects);
-    return Results.Content(html, "text/html");
-});
-
-app.MapGet("/projects/{projectId}", (string projectId, LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
-{
-    var snapshot = service.TryGetProject(projectId);
-    if (snapshot is null)
+app.MapGet(
+    "/",
+    (LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
     {
-        return Results.NotFound();
-    }
+        var projects = service.GetProjects();
+        var html = OperatorShellPageRenderer.RenderHome(options, projects);
+        return Results.Content(html, "text/html");
+    });
 
-    var html = OperatorShellPageRenderer.RenderProject(options, service.GetProjects(), snapshot);
-    return Results.Content(html, "text/html");
-});
-
-app.MapGet("/projects/{projectId}/artifacts", (string projectId, string? path, LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
-{
-    if (string.IsNullOrWhiteSpace(path))
+app.MapGet(
+    "/projects/{projectId}",
+    (string projectId, LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
     {
-        return Results.Redirect($"/projects/{Uri.EscapeDataString(projectId)}");
-    }
+        var snapshot = service.TryGetProject(projectId);
+        if (snapshot is null)
+        {
+            return Results.NotFound();
+        }
 
-    var artifactView = service.TryGetArtifactView(projectId, path);
-    if (artifactView is null)
+        var html = OperatorShellPageRenderer.RenderProject(options, service.GetProjects(), snapshot);
+        return Results.Content(html, "text/html");
+    });
+
+app.MapGet(
+    "/projects/{projectId}/artifacts",
+    (string projectId, string? path, LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
     {
-        return Results.NotFound();
-    }
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return Results.Redirect($"/projects/{Uri.EscapeDataString(projectId)}");
+        }
 
-    var html = OperatorShellPageRenderer.RenderArtifact(options, service.GetProjects(), artifactView, []);
-    return Results.Content(html, "text/html");
-});
+        var artifactView = service.TryGetArtifactView(projectId, path);
+        if (artifactView is null)
+        {
+            return Results.NotFound();
+        }
 
-app.MapPost("/projects/{projectId}/artifacts/edit", async (string projectId, HttpRequest request, LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
-{
-    var form = await request.ReadFormAsync();
-    var relativePath = form["path"].ToString();
+        var html = OperatorShellPageRenderer.RenderArtifact(options, service.GetProjects(), artifactView, []);
+        return Results.Content(html, "text/html");
+    });
 
-    if (string.IsNullOrWhiteSpace(relativePath))
+app.MapPost(
+    "/projects/{projectId}/artifacts/edit",
+    async (string projectId, HttpRequest request, LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
     {
-        return Results.BadRequest();
-    }
+        var form = await request.ReadFormAsync();
+        var relativePath = form["path"].ToString();
 
-    var editInput = OperatorArtifactEditInput.FromForm(form);
-    var result = service.EditDraft(projectId, relativePath, editInput);
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return Results.BadRequest();
+        }
 
-    if (result.IsSuccess)
+        var editInput = OperatorArtifactEditInput.FromForm(form);
+        var result = service.EditDraft(projectId, relativePath, editInput);
+
+        if (result.IsSuccess)
+        {
+            return Results.Redirect($"/projects/{Uri.EscapeDataString(projectId)}/artifacts?path={Uri.EscapeDataString(result.RelativePath!)}");
+        }
+
+        var artifactView = service.TryGetArtifactView(projectId, relativePath);
+        if (artifactView is null)
+        {
+            return Results.NotFound();
+        }
+
+        var html = OperatorShellPageRenderer.RenderArtifact(options, service.GetProjects(), artifactView, result.ValidationErrors);
+        return Results.Content(html, "text/html", statusCode: StatusCodes.Status400BadRequest);
+    });
+
+app.MapGet(
+    "/projects/{projectId}/queue",
+    (string projectId, LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
     {
-        return Results.Redirect($"/projects/{Uri.EscapeDataString(projectId)}/artifacts?path={Uri.EscapeDataString(result.RelativePath!)}");
-    }
+        var snapshot = service.TryGetProject(projectId);
+        if (snapshot is null)
+        {
+            return Results.NotFound();
+        }
 
-    var artifactView = service.TryGetArtifactView(projectId, relativePath);
-    if (artifactView is null)
+        var html = OperatorShellPageRenderer.RenderQueue(options, service.GetProjects(), snapshot);
+        return Results.Content(html, "text/html");
+    });
+
+app.MapGet(
+    "/projects/{projectId}/review",
+    (string projectId, string? path, LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
     {
-        return Results.NotFound();
-    }
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return Results.Redirect($"/projects/{Uri.EscapeDataString(projectId)}/queue");
+        }
 
-    var html = OperatorShellPageRenderer.RenderArtifact(options, service.GetProjects(), artifactView, result.ValidationErrors);
-    return Results.Content(html, "text/html", statusCode: StatusCodes.Status400BadRequest);
-});
+        var artifactView = service.TryGetArtifactView(projectId, path);
+        if (artifactView is null || !artifactView.SelectedArtifact.IsPendingReview)
+        {
+            return Results.NotFound();
+        }
 
-app.MapGet("/projects/{projectId}/queue", (string projectId, LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
-{
-    var snapshot = service.TryGetProject(projectId);
-    if (snapshot is null)
+        var html = OperatorShellPageRenderer.RenderReview(options, service.GetProjects(), artifactView);
+        return Results.Content(html, "text/html");
+    });
+
+app.MapGet(
+    "/context-viewer",
+    (HttpRequest request, FileSystemContextViewerService service) =>
     {
-        return Results.NotFound();
-    }
+        var projectId = request.Query["projectId"].ToString();
+        var taskDescription = request.Query["taskDescription"].ToString();
+        var includeDraftArtifacts = string.Equals(request.Query["includeDraftArtifacts"], "true", StringComparison.OrdinalIgnoreCase);
+        var includeLayer3History = string.Equals(request.Query["includeLayer3History"], "true", StringComparison.OrdinalIgnoreCase);
 
-    var html = OperatorShellPageRenderer.RenderQueue(options, service.GetProjects(), snapshot);
-    return Results.Content(html, "text/html");
-});
+        if (string.IsNullOrWhiteSpace(projectId) || string.IsNullOrWhiteSpace(taskDescription))
+        {
+            var emptyPage = new ContextViewerPageModel(projectId, taskDescription, includeDraftArtifacts, includeLayer3History, null, []);
+            return Results.Content(service.RenderPage(emptyPage), "text/html");
+        }
 
-app.MapGet("/projects/{projectId}/review", (string projectId, string? path, LocalOperatorWorkspaceService service, OperatorShellOptions options) =>
-{
-    if (string.IsNullOrWhiteSpace(path))
-    {
-        return Results.Redirect($"/projects/{Uri.EscapeDataString(projectId)}/queue");
-    }
-
-    var artifactView = service.TryGetArtifactView(projectId, path);
-    if (artifactView is null || !artifactView.SelectedArtifact.IsPendingReview)
-    {
-        return Results.NotFound();
-    }
-
-    var html = OperatorShellPageRenderer.RenderReview(options, service.GetProjects(), artifactView);
-    return Results.Content(html, "text/html");
-});
+        var page = service.BuildPage(new ContextViewerRequest(projectId, taskDescription, includeDraftArtifacts, includeLayer3History));
+        return Results.Content(service.RenderPage(page), "text/html");
+    });
 
 app.Run();
+
+static OperatorShellOptions BuildShellOptions(IConfiguration configuration, IHostEnvironment environment)
+{
+    var configuredWorkspacesRoot = configuration["MemoraUi:WorkspacesRoot"] ??
+                                   configuration["Memora:WorkspacesRootPath"] ??
+                                   Environment.GetEnvironmentVariable("MEMORA_WORKSPACES_ROOT");
+
+    return string.IsNullOrWhiteSpace(configuredWorkspacesRoot)
+        ? new OperatorShellOptions(
+            SampleWorkspacesBootstrapper.PrepareDefaultRoot(environment.ContentRootPath),
+            UsesSeededSampleRoot: true)
+        : new OperatorShellOptions(
+            Path.GetFullPath(configuredWorkspacesRoot),
+            UsesSeededSampleRoot: false);
+}
 
 public partial class Program;

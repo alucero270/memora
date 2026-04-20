@@ -27,6 +27,17 @@ public sealed class OperatorShellSmokeTests : IClassFixture<OperatorShellFactory
     }
 
     [Fact]
+    public async Task Root_uses_repo_sample_workspaces_when_no_workspace_root_is_configured()
+    {
+        using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+
+        Assert.Contains("Demo Project", html);
+    }
+
+    [Fact]
     public async Task Project_page_renders_artifact_browser_and_queue()
     {
         using var client = _factory.CreateClient();
