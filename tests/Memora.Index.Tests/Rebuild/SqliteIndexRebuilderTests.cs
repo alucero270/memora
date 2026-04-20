@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Memora.Core.Artifacts;
 using Memora.Core.Projects;
+using Memora.Index.Relationships;
 using Memora.Index.Rebuild;
 using Memora.Storage.Persistence;
 using Memora.Storage.Workspaces;
@@ -15,6 +16,7 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
         Guid.NewGuid().ToString("N"));
 
     private readonly SqliteIndexRebuilder _rebuilder = new();
+    private readonly ArtifactRelationshipIndex _relationshipIndex = new();
     private readonly ArtifactFileStore _fileStore = new();
 
     [Fact]
@@ -23,6 +25,7 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
         var alphaWorkspace = CreateWorkspace("alpha-workspace", "alpha", "Alpha");
         var betaWorkspace = CreateWorkspace("beta-workspace", "beta", "Beta");
 
+        _fileStore.Save(alphaWorkspace, CreateCharterArtifact("alpha", revision: 1));
         _fileStore.Save(alphaWorkspace, CreatePlanArtifact("alpha", ArtifactStatus.Approved, revision: 1));
         _fileStore.Save(alphaWorkspace, CreatePlanArtifact("alpha", ArtifactStatus.Draft, revision: 2));
         _fileStore.Save(alphaWorkspace, CreateDecisionArtifact("alpha", revision: 1));
@@ -36,13 +39,13 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
         Assert.True(result.Success);
         Assert.Empty(result.Diagnostics);
         Assert.Equal(2, result.ProjectCount);
-        Assert.Equal(4, result.ArtifactCount);
-        Assert.Equal(5, result.RevisionCount);
-        Assert.Equal(4, result.RelationshipCount);
+        Assert.Equal(5, result.ArtifactCount);
+        Assert.Equal(6, result.RevisionCount);
+        Assert.Equal(2, result.RelationshipCount);
         Assert.Equal(2L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM projects;"));
-        Assert.Equal(4L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifacts;"));
-        Assert.Equal(5L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions;"));
-        Assert.Equal(4L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_relationships;"));
+        Assert.Equal(5L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifacts;"));
+        Assert.Equal(6L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions;"));
+        Assert.Equal(2L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_relationships;"));
         Assert.Equal(
             "draft|2",
             ExecuteScalar<string>(
@@ -58,6 +61,19 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
             ExecuteScalar<long>(
                 connection,
                 "SELECT is_canonical FROM artifact_revisions WHERE project_id = 'alpha' AND artifact_id = 'PLN-001' AND revision = 2;"));
+
+        var outgoing = _relationshipIndex.GetOutgoingRelationships(connection, "alpha", "PLN-001");
+        Assert.Equal(
+            [
+                new PersistedArtifactRelationship("alpha", "PLN-001", 1, ArtifactRelationshipKind.Affects, "ADR-001"),
+                new PersistedArtifactRelationship("alpha", "PLN-001", 1, ArtifactRelationshipKind.DependsOn, "CHR-001")
+            ],
+            outgoing);
+
+        var incoming = _relationshipIndex.GetIncomingRelationships(connection, "alpha", "CHR-001");
+        Assert.Equal(
+            [new PersistedArtifactRelationship("alpha", "PLN-001", 1, ArtifactRelationshipKind.DependsOn, "CHR-001")],
+            incoming);
     }
 
     [Fact]
@@ -118,6 +134,28 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
     }
 
     [Fact]
+    public void Rebuild_InvalidApprovedRelationship_ReturnsDiagnosticsAndClearsRows()
+    {
+        var workspace = CreateWorkspace("alpha-workspace", "alpha", "Alpha");
+        _fileStore.Save(workspace, CreateDecisionArtifact("alpha", revision: 1));
+        _fileStore.Save(workspace, CreatePlanArtifact("alpha", ArtifactStatus.Approved, revision: 1) with
+        {
+            Links = new ArtifactLinks(["CHR-999"], [], [], [])
+        });
+
+        using var connection = CreateConnection();
+
+        var result = _rebuilder.Rebuild(connection, _workspacesRootPath);
+
+        Assert.False(result.Success);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "index.relationship.target.invalid");
+        Assert.Equal(0L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM projects;"));
+        Assert.Equal(0L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifacts;"));
+        Assert.Equal(0L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions;"));
+        Assert.Equal(0L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_relationships;"));
+    }
+
+    [Fact]
     public void Rebuild_FromSampleWorkspaceFixture_PopulatesExpectedRows()
     {
         using var connection = CreateConnection();
@@ -129,7 +167,7 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
         Assert.Equal(1, result.ProjectCount);
         Assert.Equal(4, result.ArtifactCount);
         Assert.Equal(4, result.RevisionCount);
-        Assert.Equal(5, result.RelationshipCount);
+        Assert.Equal(2, result.RelationshipCount);
         Assert.Equal("demo-project", ExecuteScalar<string>(connection, "SELECT project_id FROM projects LIMIT 1;"));
         Assert.Equal(2L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions WHERE is_canonical = 1;"));
         Assert.Equal(1L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions WHERE is_canonical = 0 AND artifact_id = 'PLN-001';"));
