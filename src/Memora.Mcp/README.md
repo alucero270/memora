@@ -20,4 +20,6 @@ Exposes Memora through MCP as the primary provider-facing protocol.
 
 - the current implementation is a thin adapter over `IAgentInteractionService`
 - it exposes context assembly, proposal, update, and outcome operations
+- tool and resource definitions carry explicit request, response, and error contract metadata
+- project resource reads validate the published URI template before forwarding to shared services
 - transport hosting and broader MCP ergonomics are intentionally still thin

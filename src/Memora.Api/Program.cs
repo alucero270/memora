@@ -5,6 +5,7 @@ using Memora.Core.AgentInteraction;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
 
 var workspacesRootPath = builder.Configuration["Memora:WorkspacesRootPath"] ??
                          Environment.GetEnvironmentVariable("MEMORA_WORKSPACES_ROOT");
@@ -20,6 +21,8 @@ else
 }
 
 var app = builder.Build();
+
+app.MapOpenApi("/openapi.json");
 
 app.MapGet(
     "/api/projects/{projectId}",
