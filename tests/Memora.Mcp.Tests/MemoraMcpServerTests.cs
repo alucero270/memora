@@ -11,9 +11,16 @@ public sealed class MemoraMcpServerTests
     {
         var server = new MemoraMcpServer(new TestAgentInteractionService());
 
-        Assert.Equal(
-            ["get_context", "propose_artifact", "propose_update", "record_outcome"],
-            server.Tools.Select(tool => tool.Name));
+        var tools = server.Tools.ToArray();
+
+        Assert.Equal(["get_context", "propose_artifact", "propose_update", "record_outcome"], tools.Select(tool => tool.Name));
+        Assert.Equal(nameof(GetContextRequest), tools[0].RequestContract);
+        Assert.Equal(nameof(GetContextResponse), tools[0].ResponseContract);
+        Assert.Contains(tools[0].Errors, error => error.Code == "context.validation");
+        Assert.Equal(nameof(ProposeArtifactRequest), tools[1].RequestContract);
+        Assert.Equal(nameof(ProposalResponse), tools[1].ResponseContract);
+        Assert.Equal(nameof(RecordOutcomeRequest), tools[3].RequestContract);
+        Assert.Equal(nameof(OutcomeResponse), tools[3].ResponseContract);
     }
 
     [Fact]
@@ -23,6 +30,33 @@ public sealed class MemoraMcpServerTests
 
         var resource = Assert.Single(server.Resources);
         Assert.Equal("memora://projects/{projectId}", resource.UriTemplate);
+        Assert.Equal(nameof(ProjectLookupResponse), resource.ResponseContract);
+        Assert.Contains(resource.Errors, error => error.Code == "mcp.resource.uri.invalid");
+    }
+
+    [Fact]
+    public void ReadResource_ForProjectUri_ForwardsToSharedAgentInteractionService()
+    {
+        var server = new MemoraMcpServer(new TestAgentInteractionService());
+
+        var result = server.ReadResource("memora://projects/memora");
+
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Payload);
+        Assert.Equal("memora", result.Payload.ProjectId);
+    }
+
+    [Fact]
+    public void ReadResource_ForInvalidUri_ReturnsExplicitContractError()
+    {
+        var server = new MemoraMcpServer(new TestAgentInteractionService());
+
+        var result = server.ReadResource("memora://projects/memora/extra");
+
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.Payload);
+        Assert.Equal("mcp.resource.uri.invalid", result.Errors[0].Code);
+        Assert.Equal("uri", result.Errors[0].Path);
     }
 
     [Fact]
