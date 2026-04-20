@@ -12,6 +12,23 @@ namespace Memora.Api.Tests;
 public sealed class AgentInteractionApiTests
 {
     [Fact]
+    public async Task OpenApiDocument_IsPublishedForCompanionToolClients()
+    {
+        using var factory = CreateFactory(new TestAgentInteractionService());
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/openapi.json");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var payload = await response.Content.ReadFromJsonAsync<JsonDocument>();
+        Assert.NotNull(payload);
+        var root = payload.RootElement;
+        Assert.StartsWith("3.", root.GetProperty("openapi").GetString());
+        Assert.True(root.GetProperty("paths").TryGetProperty("/api/context", out _));
+        Assert.True(root.GetProperty("paths").TryGetProperty("/api/outcomes", out _));
+    }
+
+    [Fact]
     public async Task GetProject_ReturnsConfiguredProjectContract()
     {
         using var factory = CreateFactory(new TestAgentInteractionService());
