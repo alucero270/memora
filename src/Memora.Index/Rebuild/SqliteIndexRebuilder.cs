@@ -30,8 +30,7 @@ public sealed class SqliteIndexRebuilder
                 workspace.ProjectMetadataPath))
             .ToList();
 
-        var revisionRows = new List<ArtifactRevisionRow>();
-        var relationshipRows = new List<ArtifactRelationshipRow>();
+        var parsedArtifacts = new List<ParsedArtifactRecord>();
         var revisionKeys = new HashSet<(string ProjectId, string ArtifactId, int Revision)>();
 
         foreach (var workspace in workspaces)
@@ -74,26 +73,53 @@ public sealed class SqliteIndexRebuilder
                 }
 
                 var location = ClassifyLocation(workspace, filePath);
-                revisionRows.Add(new ArtifactRevisionRow(
-                    artifact.ProjectId,
-                    artifact.Id,
-                    artifact.Revision,
-                    artifact.Type.ToSchemaValue(),
-                    artifact.Status.ToSchemaValue(),
-                    artifact.Title,
+                parsedArtifacts.Add(new ParsedArtifactRecord(
+                    artifact,
                     Path.GetFullPath(filePath),
-                    artifact.CreatedAtUtc.ToString("O"),
-                    artifact.UpdatedAtUtc.ToString("O"),
                     location == ArtifactLocation.Canonical));
+            }
+        }
 
-                relationshipRows.AddRange(
-                    artifact.Links.Relationships.Select(relationship =>
-                        new ArtifactRelationshipRow(
-                            artifact.ProjectId,
-                            artifact.Id,
-                            artifact.Revision,
-                            ArtifactLinks.ToFrontmatterKey(relationship.Kind),
-                            relationship.TargetArtifactId)));
+        var revisionRows = parsedArtifacts
+            .Select(record => new ArtifactRevisionRow(
+                record.Artifact.ProjectId,
+                record.Artifact.Id,
+                record.Artifact.Revision,
+                record.Artifact.Type.ToSchemaValue(),
+                record.Artifact.Status.ToSchemaValue(),
+                record.Artifact.Title,
+                record.FilePath,
+                record.Artifact.CreatedAtUtc.ToString("O"),
+                record.Artifact.UpdatedAtUtc.ToString("O"),
+                record.IsCanonical))
+            .ToList();
+
+        var approvedArtifactIds = parsedArtifacts
+            .Where(record => record.IsCanonical && record.Artifact.Status == ArtifactStatus.Approved)
+            .Select(record => (record.Artifact.ProjectId, record.Artifact.Id))
+            .ToHashSet();
+
+        var relationshipRows = new List<ArtifactRelationshipRow>();
+        foreach (var record in parsedArtifacts.Where(record => record.IsCanonical && record.Artifact.Status == ArtifactStatus.Approved))
+        {
+            foreach (var relationship in record.Artifact.Links.Relationships)
+            {
+                if (!approvedArtifactIds.Contains((record.Artifact.ProjectId, relationship.TargetArtifactId)))
+                {
+                    diagnostics.Add(new IndexRebuildDiagnostic(
+                        record.FilePath,
+                        "index.relationship.target.invalid",
+                        $"Approved artifact '{record.Artifact.Id}' references missing approved target '{relationship.TargetArtifactId}'.",
+                        $"links.{ArtifactLinks.ToFrontmatterKey(relationship.Kind)}"));
+                    continue;
+                }
+
+                relationshipRows.Add(new ArtifactRelationshipRow(
+                    record.Artifact.ProjectId,
+                    record.Artifact.Id,
+                    record.Artifact.Revision,
+                    ArtifactLinks.ToFrontmatterKey(relationship.Kind),
+                    relationship.TargetArtifactId));
             }
         }
 
@@ -324,6 +350,11 @@ public sealed class SqliteIndexRebuilder
         int SourceRevision,
         string RelationshipKind,
         string TargetArtifactId);
+
+    private sealed record ParsedArtifactRecord(
+        ArtifactDocument Artifact,
+        string FilePath,
+        bool IsCanonical);
 
     private enum ArtifactLocation
     {
