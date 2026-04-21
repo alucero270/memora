@@ -213,7 +213,7 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
             if (!parsed.Validation.IsValid || parsed.Artifact is null)
             {
                 collectedErrors.AddRange(parsed.Validation.Issues.Select(issue =>
-                    new AgentInteractionError(issue.Code, issue.Message, issue.Path ?? filePath)));
+                    new AgentInteractionError(issue.Code, issue.DiagnosticMessage, issue.Path ?? filePath)));
                 continue;
             }
 
@@ -320,7 +320,7 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
 
     private static IReadOnlyList<AgentInteractionError> MapErrors(ArtifactValidationResult validation) =>
         validation.Issues
-            .Select(issue => new AgentInteractionError(issue.Code, issue.Message, issue.Path))
+            .Select(issue => new AgentInteractionError(issue.Code, issue.DiagnosticMessage, issue.Path))
             .ToArray();
 
     private static AgentContextBundle MapBundle(GetContextRequest request, ContextBundle bundle) =>
