@@ -18,3 +18,10 @@ Maintains the derived SQLite index for Memora artifacts.
 - `Schema/SqliteIndexSchema.cs`: schema creation and rebuildable index shape
 - `Rebuild/SqliteIndexRebuilder.cs`: rebuilds the index from filesystem truth
 - `Rebuild/IndexRebuildResult.cs`: diagnostics and rebuild summary models
+
+## Rebuild Diagnostics
+
+Failed rebuilds report the filesystem project and artifact-file counts that
+were scanned, identify the file/path that caused each diagnostic, and make clear
+that SQLite is a derived index. When diagnostics are present, derived index rows
+are cleared and not repopulated until the filesystem issues are fixed.

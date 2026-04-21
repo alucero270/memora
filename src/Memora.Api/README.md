@@ -25,6 +25,7 @@ Exposes Memora capabilities through a local OpenAPI-compatible service.
 - endpoints are minimal and focused on the shared agent interaction contract
 - the host publishes a companion OpenAPI document at `/openapi.json`
 - the file-backed path is only active when a workspace root is configured
+- validation errors preserve structured code/path fields and use diagnostic messages from core validation
 - this host is intentionally thin and does not claim a full production API surface
 
 ## Local Development

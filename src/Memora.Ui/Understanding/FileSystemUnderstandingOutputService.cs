@@ -100,7 +100,7 @@ internal sealed class FileSystemUnderstandingOutputService
                     request.TraceabilityKind,
                     request.IncludeDraftArtifacts,
                     request.IncludeLayer3History,
-                    $"Understanding output rebuild failed: {rebuildResult.Diagnostics[0].Message}",
+                    $"Understanding output rebuild failed: {rebuildResult.Summary} First diagnostic: {rebuildResult.Diagnostics[0].DiagnosticMessage}",
                     contextView,
                     null,
                     null);

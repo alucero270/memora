@@ -16,18 +16,20 @@ It is built around a few non-negotiable rules:
 This checkout includes working slices across:
 
 - core artifact schemas, lifecycle rules, validation, editing, approval queue, and diffs
+- validation diagnostics that surface code and path context for operators and integrations
 - filesystem parsing and persistence for canonical, draft, and summary artifacts
-- SQLite rebuild-from-files indexing
+- SQLite rebuild-from-files indexing with filesystem-first rebuild diagnostics
 - deterministic context ranking, inclusion reasoning, and layered context assembly
 - a minimal local HTTP API for project lookup, context assembly, proposals, updates, and outcomes
 - a thin MCP surface over the shared agent interaction contract
-- a styled local operator UI plus a context viewer route
+- a styled local operator UI with approval review navigation, clearer revision diffs, a context viewer route, and an understanding-output route
+- operator workflow guidance for review, draft editing, diff inspection, and rebuild recovery
 
 Important limits still apply:
 
 - canonical truth remains filesystem-first and approval-governed
 - no semantic or vector retrieval exists in core v1
-- the UI shows review previews, but it does not claim full approval or rejection persistence
+- the UI shows review previews and inactive approval decision controls, but it does not persist approval or rejection decisions
 - the MCP layer is currently a thin in-process adapter surface, not a production transport host
 
 ## Start Here
@@ -37,8 +39,9 @@ If you are orienting yourself in the repo, this order works well:
 1. [docs/current-state.md](docs/current-state.md)
 2. [docs/architecture.md](docs/architecture.md)
 3. [docs/milestones.md](docs/milestones.md)
-4. [src/README.md](src/README.md)
-5. [tests/README.md](tests/README.md)
+4. [docs/operator-workflows.md](docs/operator-workflows.md)
+5. [src/README.md](src/README.md)
+6. [tests/README.md](tests/README.md)
 
 ## Local Run
 

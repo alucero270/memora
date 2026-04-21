@@ -42,6 +42,9 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
         Assert.Equal(5, result.ArtifactCount);
         Assert.Equal(6, result.RevisionCount);
         Assert.Equal(2, result.RelationshipCount);
+        Assert.Equal(2, result.FilesystemProjectCount);
+        Assert.Equal(6, result.FilesystemArtifactFileCount);
+        Assert.Contains("Rebuilt derived SQLite index from filesystem truth", result.Summary, StringComparison.Ordinal);
         Assert.Equal(2L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM projects;"));
         Assert.Equal(5L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifacts;"));
         Assert.Equal(6L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions;"));
@@ -126,7 +129,13 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
 
         Assert.False(secondResult.Success);
         Assert.NotEmpty(secondResult.Diagnostics);
-        Assert.Contains(secondResult.Diagnostics, diagnostic => diagnostic.Code == "frontmatter.parse");
+        var diagnostic = Assert.Single(secondResult.Diagnostics, diagnostic => diagnostic.Code == "frontmatter.parse");
+        Assert.Contains("source: filesystem truth", diagnostic.DiagnosticMessage, StringComparison.Ordinal);
+        Assert.Contains("index: derived SQLite index", diagnostic.DiagnosticMessage, StringComparison.Ordinal);
+        Assert.Contains("broken.r0001.md", diagnostic.DiagnosticMessage, StringComparison.Ordinal);
+        Assert.Equal(1, secondResult.FilesystemProjectCount);
+        Assert.Equal(2, secondResult.FilesystemArtifactFileCount);
+        Assert.Contains("derived SQLite index rows were cleared and not repopulated", secondResult.Summary, StringComparison.Ordinal);
         Assert.Equal(0L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM projects;"));
         Assert.Equal(0L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifacts;"));
         Assert.Equal(0L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions;"));
@@ -148,7 +157,10 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
         var result = _rebuilder.Rebuild(connection, _workspacesRootPath);
 
         Assert.False(result.Success);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "index.relationship.target.invalid");
+        var diagnostic = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "index.relationship.target.invalid");
+        Assert.Contains("Approved artifact 'PLN-001' references missing approved target 'CHR-999'.", diagnostic.DiagnosticMessage, StringComparison.Ordinal);
+        Assert.Contains("source: filesystem truth", diagnostic.DiagnosticMessage, StringComparison.Ordinal);
+        Assert.Contains("index: derived SQLite index", diagnostic.DiagnosticMessage, StringComparison.Ordinal);
         Assert.Equal(0L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM projects;"));
         Assert.Equal(0L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifacts;"));
         Assert.Equal(0L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions;"));
