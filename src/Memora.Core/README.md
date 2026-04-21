@@ -21,6 +21,7 @@ Defines Memora's core domain model and rules.
 - `Artifacts/`: typed artifact models and enums
 - `Validation/`: frontmatter, body, id, timestamp, and lifecycle validation
 - `Approval/`: approval queue and workflow rules
+- `Automation/`: bounded low-risk artifact classes and controlled automation policy models
 - `Editing/`: draft-edit behavior
 - `Revisions/`: field-level revision diffs with deterministic areas and display labels
 - `AgentInteraction/`: shared contracts used by API and MCP
