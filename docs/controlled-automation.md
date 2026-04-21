@@ -40,3 +40,61 @@ In v1, low-risk classification does not weaken governance:
 - direct canonical writes are not allowed by these definitions
 - future automation must add explicit policy checks before any write can occur
 
+## Policy Model
+
+Controlled automation policies are explicit data models in core. A valid policy
+must:
+
+- name the policy and declare whether it is enabled
+- require an explicit trigger
+- list each allowed action, artifact type, storage scope, and guardrail
+- refer only to low-risk candidate artifact classes
+- include every guardrail required by the artifact-class definition
+- reject canonical write scope when the artifact class does not allow it
+
+The policy model is inert by itself. It does not register event triggers, start
+automation, or create a write path.
+
+## Safe Trigger Events
+
+Controlled automation trigger handling distinguishes observed lifecycle events
+from explicit operator requests:
+
+- lifecycle and approval-adjacent events can be represented for audit and
+  future workflow evaluation
+- policy-governed automation requires an explicit trigger before it can become
+  eligible
+- trigger evaluation returns an eligibility decision and reason codes only
+- trigger evaluation does not persist artifacts, approve artifacts, or mutate
+  canonical truth
+
+## Selective Direct-Write Prototype
+
+The current prototype is limited to `session_summary` artifacts. A write can
+proceed only when:
+
+- the policy validates against the low-risk class catalog
+- the trigger is an explicit operator request
+- the requested artifact type is `session_summary`
+- the session summary schema validates with `canonical: false`
+- the target artifact id does not already exist
+- the write target is the summaries store, not canonical storage
+
+The prototype does not expose a general direct-write path and does not apply to
+plans, decisions, constraints, questions, outcomes, charters, or approved repo
+structure artifacts.
+
+## Safety Validation
+
+Policy-governed writes are checked by a dedicated safety validator before
+filesystem persistence. The validator blocks writes when:
+
+- the policy is structurally invalid or disabled
+- the trigger is not an explicit operator request
+- the trigger project, artifact id, or artifact type differs from the write
+  request
+- the policy does not grant a matching direct-write permission
+- the requested storage scope differs from the policy permission
+- the requested storage scope is canonical
+
+Denied writes return explicit diagnostic codes and do not write files.
