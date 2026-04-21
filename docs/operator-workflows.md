@@ -1,0 +1,122 @@
+# Operator Workflows
+
+This guide describes the operator workflows supported by the current Memora
+implementation. It is intentionally limited to behavior that exists now.
+
+## Ground Rules
+
+- Filesystem artifacts are canonical truth.
+- SQLite is a derived index and can be rebuilt from files.
+- Drafts and proposals are review inputs, not authoritative project truth.
+- The local UI helps operators inspect and edit pending artifacts, but it does
+  not persist approval or rejection decisions yet.
+- Rebuild diagnostics help operators fix filesystem issues; they do not repair
+  files automatically.
+
+## Start The Local UI
+
+Run `src/Memora.Ui` to open the local operator shell. By default it uses a
+writable local copy of `samples/workspaces`. Set `MEMORA_WORKSPACES_ROOT` or
+`MemoraUi__WorkspacesRoot` to point the UI at another workspace root.
+
+The first screen lists discovered projects. Open a project to see:
+
+- all discovered canonical, draft, and summary artifacts
+- the current approval queue from `ApprovalQueueBuilder`
+- links into artifact detail and review pages
+
+## Review Pending Artifacts
+
+Open a project queue from `/projects/{projectId}/queue`. Pending artifacts are
+ordered by the shared core queue rules:
+
+- proposed artifacts before drafts
+- older pending timestamps before newer ones
+- stable artifact id ordering when timestamps match
+
+Open a review item to inspect:
+
+- queue position and previous/next navigation
+- pending revision metadata
+- current approved baseline when one exists
+- revision diff details when the pending artifact has an approved baseline
+- decision-readiness context for the current pending item
+
+The visible approve and reject controls are intentionally inactive in the UI.
+That boundary is deliberate: approval and rejection behavior exists in
+`Memora.Core`, but UI persistence for those decisions is not implemented in the
+current product slice.
+
+## Edit Drafts
+
+Open a draft artifact detail page from the artifact browser. The edit form uses
+the shared core draft editor and storage writer.
+
+When a draft edit is valid:
+
+- Memora writes a new draft revision under the workspace draft root.
+- The existing canonical artifact remains unchanged.
+- The saved draft can be inspected again through the project browser and queue.
+
+When a draft edit is invalid:
+
+- no file is written
+- validation errors include the code and path for each failure
+- the operator should fix the indicated field or body section and retry
+
+## Inspect Revision Diffs
+
+Revision diffs are read-only. They compare a pending candidate against the
+latest approved artifact with the same project, id, and type.
+
+Diff rows show:
+
+- the area affected, such as metadata, sections, links, or type-specific fields
+- a reviewer-friendly field label
+- the raw deterministic field path
+- before and after values
+
+No canonical state changes during diff generation or display.
+
+## Handle Rebuild Diagnostics
+
+The SQLite index is rebuilt from filesystem truth. If a rebuild fails, the
+result reports:
+
+- how many filesystem projects and artifact files were scanned
+- which file and path produced each diagnostic
+- the diagnostic code and message
+- that SQLite is a derived index, not canonical truth
+
+When diagnostics are present, derived index rows are cleared and not repopulated.
+Fix the filesystem artifact or relationship issue, then rebuild again. Do not
+treat stale or missing SQLite rows as truth.
+
+Common examples:
+
+- invalid frontmatter or missing required fields in an artifact file
+- artifact `project_id` that does not match the workspace project
+- duplicate artifact revision files
+- approved relationships that point to missing approved target artifacts
+
+## Use Understanding Outputs
+
+The `/understanding` route builds read-only context, traceability, and component
+views from current project files.
+
+If traceability output cannot be built because rebuild diagnostics exist, the
+page reports the rebuild summary and first diagnostic. Resolve the filesystem
+issue first, then rebuild or refresh the understanding output.
+
+## Current Non-Goals
+
+The current workflows do not include:
+
+- direct UI approval persistence
+- automatic canonical writes by agents
+- auto-repair of invalid artifacts or indexes
+- semantic or vector retrieval in core
+- Strata-style broad search
+
+Future automation work must preserve lifecycle, approval, and filesystem-first
+authority rules.
