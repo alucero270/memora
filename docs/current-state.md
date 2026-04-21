@@ -8,11 +8,13 @@ It is intentionally separate from roadmap and milestone planning docs.
 ### Foundation
 
 - typed artifact models, enums, and lifecycle rules in `Memora.Core`
-- artifact validation, planning intake, draft editing, approval queue building, and revision diffs
+- artifact validation, diagnostic formatting, planning intake, draft editing, approval queue building, and revision diffs
+- revision diffs include deterministic change areas, display labels, and raw paths
 - markdown plus frontmatter parsing in `Memora.Storage`
 - filesystem persistence for canonical, draft, and summary artifacts
 - workspace discovery through `project.json`
 - SQLite schema plus rebuild-from-files indexing in `Memora.Index`
+- rebuild diagnostics distinguish filesystem truth from derived SQLite index state
 
 ### Context Assembly
 
@@ -37,15 +39,22 @@ It is intentionally separate from roadmap and milestone planning docs.
 - styled local operator shell in `Memora.Ui`
 - project selection from discovered workspaces
 - artifact browsing and draft editing
-- approval queue and revision review previews
+- approval queue navigation, revision review previews, and decision-readiness context
 - context viewer page backed by the shared context builder
+- understanding output page with context, traceability, and component views
+
+### Operator Guidance
+
+- workflow-focused operator guide in `docs/operator-workflows.md`
+- operations doc that points operators to current review and recovery workflows
 
 ## Still Intentionally Thin
 
-- UI review is preview-oriented and does not claim full approval or rejection persistence
+- UI review is preview-oriented and does not persist approval or rejection decisions
 - API is a minimal HTTP surface, not a fully documented production service
 - MCP is currently an in-process adapter surface, not a complete hosted server transport
 - context assembly is deterministic and explainable, but remains non-semantic and non-vector in v1
+- rebuild diagnostics identify filesystem issues, but they do not auto-repair artifacts or indexes
 
 ## Where To Look In Code
 
@@ -67,6 +76,7 @@ It is intentionally separate from roadmap and milestone planning docs.
 
 - `src/Memora.Index/Schema/SqliteIndexSchema.cs`
 - `src/Memora.Index/Rebuild/SqliteIndexRebuilder.cs`
+- `src/Memora.Index/Rebuild/IndexRebuildResult.cs`
 
 ### Context
 
@@ -91,6 +101,7 @@ It is intentionally separate from roadmap and milestone planning docs.
 - `src/Memora.Ui/Operator/LocalOperatorWorkspaceService.cs`
 - `src/Memora.Ui/Rendering/OperatorShellPageRenderer.cs`
 - `src/Memora.Ui/ContextViewer/FileSystemContextViewerService.cs`
+- `src/Memora.Ui/Understanding/FileSystemUnderstandingOutputService.cs`
 
 ## Local Run Behavior
 
