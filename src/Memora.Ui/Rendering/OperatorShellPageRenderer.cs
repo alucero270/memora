@@ -172,7 +172,7 @@ internal static class OperatorShellPageRenderer
         body.AppendLine("<section class=\"hero compact\">");
         body.AppendLine("<p class=\"eyebrow\">Approval Queue</p>");
         body.AppendLine($"<h1>{Encode(snapshot.Workspace.Metadata.Name)}</h1>");
-        body.AppendLine("<p class=\"lede\">Pending review items from the core queue model, ready for operator inspection.</p>");
+        body.AppendLine($"<p class=\"lede\">{Encode(snapshot.PendingItems.Count.ToString(CultureInfo.InvariantCulture))} pending review item(s) from the core queue model, ready for operator inspection.</p>");
         body.AppendLine("</section>");
 
         body.AppendLine("<section class=\"panel\">");
@@ -184,11 +184,13 @@ internal static class OperatorShellPageRenderer
         }
         else
         {
-            body.AppendLine("<table><thead><tr><th>Title</th><th>Status</th><th>Type</th><th>Pending Since</th><th>Review</th></tr></thead><tbody>");
-            foreach (var item in snapshot.PendingItems)
+            body.AppendLine("<table><thead><tr><th>Position</th><th>Title</th><th>Status</th><th>Type</th><th>Pending Since</th><th>Review</th></tr></thead><tbody>");
+            for (var index = 0; index < snapshot.PendingItems.Count; index++)
             {
+                var item = snapshot.PendingItems[index];
                 var reviewLink = BuildReviewLink(snapshot.Workspace.ProjectId, item.Record.RelativePath);
                 body.AppendLine("<tr>");
+                body.AppendLine($"<td>{Encode((index + 1).ToString(CultureInfo.InvariantCulture))} of {Encode(snapshot.PendingItems.Count.ToString(CultureInfo.InvariantCulture))}</td>");
                 body.AppendLine($"<td>{Encode(item.QueueItem.Title)}</td>");
                 body.AppendLine($"<td>{RenderStatusBadge(item.QueueItem.PendingStatus)}</td>");
                 body.AppendLine($"<td>{Encode(item.QueueItem.ArtifactType.ToSchemaValue())}</td>");
@@ -218,7 +220,13 @@ internal static class OperatorShellPageRenderer
         body.AppendLine("<p class=\"eyebrow\">Revision Review</p>");
         body.AppendLine($"<h1>{Encode(artifact.Title)}</h1>");
         body.AppendLine($"<p class=\"lede\">Queue review preview for <code>{Encode(view.SelectedArtifact.RelativePath)}</code>.</p>");
+        if (view.ReviewQueueContext is not null)
+        {
+            body.AppendLine($"<p class=\"queue-position\">Review item {Encode(view.ReviewQueueContext.Position.ToString(CultureInfo.InvariantCulture))} of {Encode(view.ReviewQueueContext.TotalItems.ToString(CultureInfo.InvariantCulture))}</p>");
+        }
         body.AppendLine("</section>");
+
+        body.AppendLine(RenderReviewNavigation(view));
 
         body.AppendLine("<section class=\"two-up\">");
         body.AppendLine("<article class=\"panel\">");
@@ -275,6 +283,7 @@ internal static class OperatorShellPageRenderer
         }
 
         body.AppendLine("</section>");
+        body.AppendLine(RenderDecisionPanel(view));
         body.AppendLine("<section class=\"panel note\">");
         body.AppendLine("<h2>Current UI boundary</h2>");
         body.AppendLine("<p>Approval and rejection behavior exists in core, but this shell intentionally stops at review preview for now. That keeps the UI honest until filesystem persistence for those decisions is defined end to end.</p>");
@@ -422,13 +431,69 @@ internal static class OperatorShellPageRenderer
         return html.ToString();
     }
 
+    private static string RenderReviewNavigation(OperatorArtifactView view)
+    {
+        var context = view.ReviewQueueContext;
+        if (context is null)
+        {
+            return string.Empty;
+        }
+
+        var html = new StringBuilder();
+        html.AppendLine("<section class=\"review-nav panel\">");
+        html.AppendLine($"<a class=\"button ghost\" href=\"/projects/{Encode(view.Project.Workspace.ProjectId)}/queue\">Back to queue</a>");
+
+        if (context.PreviousItem is null)
+        {
+            html.AppendLine("<span class=\"button disabled\">Previous item</span>");
+        }
+        else
+        {
+            html.AppendLine($"<a class=\"button ghost\" href=\"{BuildReviewLink(view.Project.Workspace.ProjectId, context.PreviousItem.Record.RelativePath)}\">Previous item</a>");
+        }
+
+        if (context.NextItem is null)
+        {
+            html.AppendLine("<span class=\"button disabled\">Next item</span>");
+        }
+        else
+        {
+            html.AppendLine($"<a class=\"button ghost\" href=\"{BuildReviewLink(view.Project.Workspace.ProjectId, context.NextItem.Record.RelativePath)}\">Next item</a>");
+        }
+
+        html.AppendLine("</section>");
+        return html.ToString();
+    }
+
+    private static string RenderDecisionPanel(OperatorArtifactView view)
+    {
+        var artifact = view.SelectedArtifact.Artifact;
+        var html = new StringBuilder();
+        html.AppendLine("<section class=\"panel decision-panel\">");
+        html.AppendLine("<div class=\"panel-header\"><h2>Decision Readiness</h2><p class=\"muted\">Core workflow alignment for this pending artifact.</p></div>");
+        html.AppendLine("<dl class=\"meta-grid\">");
+        html.AppendLine($"<div><dt>Pending status</dt><dd>{RenderStatusBadge(artifact.Status)}</dd></div>");
+        html.AppendLine($"<div><dt>Candidate revision</dt><dd>{Encode(artifact.Revision.ToString(CultureInfo.InvariantCulture))}</dd></div>");
+        html.AppendLine($"<div><dt>Approved baseline</dt><dd>{Encode(view.CurrentApprovedArtifact is null ? "none" : "revision " + view.CurrentApprovedArtifact.Revision.ToString(CultureInfo.InvariantCulture))}</dd></div>");
+        html.AppendLine($"<div><dt>Diff status</dt><dd>{Encode(view.DiffIssues.Count > 0 ? "needs attention" : view.RevisionDiff is null ? "net new or unavailable" : "ready to inspect")}</dd></div>");
+        html.AppendLine("</dl>");
+        html.AppendLine("<div class=\"decision-actions\">");
+        html.AppendLine("<span class=\"button disabled\">Approve</span>");
+        html.AppendLine("<span class=\"button disabled danger\">Reject</span>");
+        html.AppendLine("<a class=\"button ghost\" href=\"/projects/" + Encode(view.Project.Workspace.ProjectId) + "/queue\">Return to queue</a>");
+        html.AppendLine("</div>");
+        html.AppendLine("<p class=\"muted\">The visible decision controls are intentionally inactive until UI persistence can apply the existing core approval workflow without bypassing filesystem-first governance.</p>");
+        html.AppendLine("</section>");
+        return html.ToString();
+    }
+
     private static string RenderScopeNote(OperatorShellOptions options)
     {
         var rootMode = options.UsesSeededSampleRoot
             ? "The shell is using a writable local copy of the sample workspaces so you can explore without touching the repo fixtures."
             : "The shell is using the configured workspace root directly.";
 
-        return $"<section class=\"panel note\"><h2>Current Milestone 2 scope</h2><p>{Encode(rootMode)}</p><p>Draft inspection and editing are wired through current core and storage behavior. Approval review is visible here, while approval and rejection persistence remain outside this UI slice.</p></section>";
+        return $"<section class=\"panel note\"><h2>Current workflow scope</h2><p>{Encode(rootMode)}</p><p>Draft inspection and editing are wired through current core and storage behavior. Approval review is visible here, while approval and rejection persistence remain outside this UI slice.</p></section>";
     }
 
     private static string RenderStatusBadge(ArtifactStatus status) =>
@@ -483,6 +548,11 @@ pre { white-space: pre-wrap; margin: 0; }
 .edit-form label { display: grid; gap: 8px; }
 .button { display: inline-flex; align-items: center; justify-content: center; width: fit-content; border: none; border-radius: 999px; padding: 12px 18px; background: #7d341f; color: #fff8f3; text-decoration: none; cursor: pointer; }
 .button.ghost { background: transparent; color: #7d341f; border: 1px solid rgba(125, 52, 31, 0.24); }
+.button.disabled { background: #d9c6bb; color: #695748; cursor: not-allowed; }
+.button.danger { background: #9d3d30; color: #fff8f3; }
+.review-nav, .decision-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.queue-position { display: inline-flex; border: 1px solid rgba(125, 52, 31, 0.18); border-radius: 999px; padding: 8px 12px; background: rgba(255, 255, 255, 0.58); }
+.decision-panel { border-color: rgba(91, 56, 35, 0.24); }
 .alert { border-color: rgba(146, 50, 40, 0.34); }
 .note { background: rgba(245, 232, 210, 0.85); }
 .footer { margin-top: 20px; }
