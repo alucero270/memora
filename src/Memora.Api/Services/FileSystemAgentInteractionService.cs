@@ -19,7 +19,7 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
     private readonly ArtifactFactory _artifactFactory = new();
     private readonly ArtifactFileStore _fileStore = new();
     private readonly ContextBundleBuilder _contextBundleBuilder = new();
-    private readonly SafeAutomationTriggerEvaluator _automationTriggerEvaluator = new();
+    private readonly PolicyGovernedWriteSafetyValidator _writeSafetyValidator = new();
 
     public FileSystemAgentInteractionService(string workspacesRootPath)
     {
@@ -205,8 +205,15 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
                 [new AgentInteractionError("project.not_found", $"Project '{request.ProjectId}' was not found.", "project_id")]);
         }
 
-        var triggerDecision = _automationTriggerEvaluator.Evaluate(request.Policy, request.TriggerEvent);
-        if (!triggerDecision.IsEligible)
+        var safetyResult = _writeSafetyValidator.Validate(
+            new PolicyGovernedWriteSafetyRequest(
+                request.ProjectId,
+                request.ArtifactId,
+                ArtifactType.SessionSummary,
+                AutomationStorageScope.Summary,
+                request.Policy,
+                request.TriggerEvent));
+        if (!safetyResult.IsAllowed)
         {
             return new PolicyGovernedWriteResponse(
                 request.ProjectId,
@@ -216,40 +223,7 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
                 0,
                 AutomationStorageScope.Summary,
                 null,
-                MapTriggerDecisionErrors(triggerDecision));
-        }
-
-        if (request.TriggerEvent.ArtifactType != ArtifactType.SessionSummary)
-        {
-            return new PolicyGovernedWriteResponse(
-                request.ProjectId,
-                request.ArtifactId,
-                request.ArtifactType,
-                ArtifactStatus.Proposed,
-                0,
-                AutomationStorageScope.Summary,
-                null,
-                [new AgentInteractionError(
-                    "automation.write.artifact_type.invalid",
-                    "The guarded direct-write prototype only supports session summary artifacts.",
-                    "artifact_type")]);
-        }
-
-        if (request.TriggerEvent.ArtifactId is not null &&
-            !string.Equals(request.TriggerEvent.ArtifactId, request.ArtifactId, StringComparison.Ordinal))
-        {
-            return new PolicyGovernedWriteResponse(
-                request.ProjectId,
-                request.ArtifactId,
-                request.ArtifactType,
-                ArtifactStatus.Proposed,
-                0,
-                AutomationStorageScope.Summary,
-                null,
-                [new AgentInteractionError(
-                    "automation.write.artifact_id.mismatch",
-                    $"Trigger artifact '{request.TriggerEvent.ArtifactId}' does not match requested artifact '{request.ArtifactId}'.",
-                    "trigger_event.artifact_id")]);
+                MapSafetyErrors(safetyResult));
         }
 
         var existingArtifacts = LoadArtifacts(workspace, includeDrafts: true, includeSummaries: true, out var loadErrors);
@@ -451,20 +425,11 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
             .Select(issue => new AgentInteractionError(issue.Code, issue.DiagnosticMessage, issue.Path))
             .ToArray();
 
-    private static IReadOnlyList<AgentInteractionError> MapTriggerDecisionErrors(
-        ControlledAutomationTriggerDecision triggerDecision)
-    {
-        if (triggerDecision.ValidationIssues.Count > 0)
-        {
-            return triggerDecision.ValidationIssues
-                .Select(issue => new AgentInteractionError(issue.Code, issue.DiagnosticMessage, issue.Path))
-                .ToArray();
-        }
-
-        return triggerDecision.ReasonCodes
-            .Select(reason => new AgentInteractionError(reason, $"Automation trigger was not eligible: {reason}.", "trigger_event"))
+    private static IReadOnlyList<AgentInteractionError> MapSafetyErrors(
+        PolicyGovernedWriteSafetyResult safetyResult) =>
+        safetyResult.Issues
+            .Select(issue => new AgentInteractionError(issue.Code, issue.DiagnosticMessage, issue.Path))
             .ToArray();
-    }
 
     private static AgentContextBundle MapBundle(GetContextRequest request, ContextBundle bundle) =>
         new(

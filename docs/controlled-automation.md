@@ -83,3 +83,18 @@ proceed only when:
 The prototype does not expose a general direct-write path and does not apply to
 plans, decisions, constraints, questions, outcomes, charters, or approved repo
 structure artifacts.
+
+## Safety Validation
+
+Policy-governed writes are checked by a dedicated safety validator before
+filesystem persistence. The validator blocks writes when:
+
+- the policy is structurally invalid or disabled
+- the trigger is not an explicit operator request
+- the trigger project, artifact id, or artifact type differs from the write
+  request
+- the policy does not grant a matching direct-write permission
+- the requested storage scope differs from the policy permission
+- the requested storage scope is canonical
+
+Denied writes return explicit diagnostic codes and do not write files.

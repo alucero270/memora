@@ -22,12 +22,14 @@ This checkout includes working slices across:
 - deterministic context ranking, inclusion reasoning, and layered context assembly
 - a minimal local HTTP API for project lookup, context assembly, proposals, updates, and outcomes
 - a thin MCP surface over the shared agent interaction contract
+- controlled automation policy models, safe trigger evaluation, and a guarded session-summary direct-write prototype
 - a styled local operator UI with approval review navigation, clearer revision diffs, a context viewer route, and an understanding-output route
 - operator workflow guidance for review, draft editing, diff inspection, and rebuild recovery
 
 Important limits still apply:
 
 - canonical truth remains filesystem-first and approval-governed
+- controlled automation is limited to explicit policy checks and non-canonical session-summary writes
 - no semantic or vector retrieval exists in core v1
 - the UI shows review previews and inactive approval decision controls, but it does not persist approval or rejection decisions
 - the MCP layer is currently a thin in-process adapter surface, not a production transport host

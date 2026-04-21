@@ -34,6 +34,14 @@ It is intentionally separate from roadmap and milestone planning docs.
   - outcome recording
 - a thin MCP adapter in `Memora.Mcp` over the shared agent interaction contract
 
+### Controlled Automation
+
+- low-risk automation candidates are defined explicitly in `Memora.Core`
+- controlled automation policies declare allowed actions, artifact classes, storage scope, and guardrails
+- safe trigger evaluation requires explicit operator-requested triggers before policy-governed writes become eligible
+- policy-governed write safety validation blocks invalid policy, trigger, project, artifact, and storage-scope cases before persistence
+- a guarded file-backed prototype can write `session_summary` artifacts to summary storage only
+
 ### Operator UI
 
 - styled local operator shell in `Memora.Ui`
@@ -55,6 +63,7 @@ It is intentionally separate from roadmap and milestone planning docs.
 - MCP is currently an in-process adapter surface, not a complete hosted server transport
 - context assembly is deterministic and explainable, but remains non-semantic and non-vector in v1
 - rebuild diagnostics identify filesystem issues, but they do not auto-repair artifacts or indexes
+- controlled automation does not provide a general direct-write path and does not write canonical artifacts
 
 ## Where To Look In Code
 
@@ -63,6 +72,7 @@ It is intentionally separate from roadmap and milestone planning docs.
 - `src/Memora.Core/Artifacts/ArtifactDocuments.cs`
 - `src/Memora.Core/Validation/`
 - `src/Memora.Core/Approval/`
+- `src/Memora.Core/Automation/`
 - `src/Memora.Core/Revisions/`
 - `src/Memora.Core/AgentInteraction/AgentInteractionContract.cs`
 
@@ -90,6 +100,10 @@ It is intentionally separate from roadmap and milestone planning docs.
 - `src/Memora.Api/Program.cs`
 - `src/Memora.Api/Services/FileSystemAgentInteractionService.cs`
 - `src/Memora.Api/AgentInteractionHttpResults.cs`
+
+### Controlled Automation Docs
+
+- `docs/controlled-automation.md`
 
 ### MCP
 
