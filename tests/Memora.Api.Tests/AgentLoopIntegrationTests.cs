@@ -1,7 +1,9 @@
 using Memora.Api.Services;
 using Memora.Core.AgentInteraction;
+using Memora.Core.Approval;
 using Memora.Core.Artifacts;
 using Memora.Core.Projects;
+using Memora.Storage.Parsing;
 using Memora.Storage.Persistence;
 using Memora.Storage.Workspaces;
 
@@ -15,6 +17,9 @@ public sealed class AgentLoopIntegrationTests : IDisposable
         Guid.NewGuid().ToString("N"));
 
     private readonly ArtifactFileStore _fileStore = new();
+    private readonly ArtifactMarkdownParser _parser = new();
+    private readonly ArtifactApprovalWorkflow _approvalWorkflow = new();
+    private readonly ApprovalQueueBuilder _approvalQueueBuilder = new();
 
     [Fact]
     public void GetContext_IsDeterministicForRepeatedRequests()
@@ -64,6 +69,87 @@ public sealed class AgentLoopIntegrationTests : IDisposable
         Assert.True(File.Exists(Path.Combine(workspace.DraftsRootPath, "outcome", "OUT-001.r0001.md")));
         Assert.DoesNotContain(defaultContext.Bundle!.Layers.SelectMany(layer => layer.Artifacts), artifact => artifact.Artifact.Id == "OUT-001");
         Assert.Contains(draftContext.Bundle!.Layers.SelectMany(layer => layer.Artifacts), artifact => artifact.Artifact.Id == "OUT-001");
+    }
+
+    [Fact]
+    public void ProposedUpdate_RemainsNonCanonicalUntilReviewedDraftIsExplicitlyApproved()
+    {
+        var workspace = CreateWorkspace("memora");
+        var approvedPath = _fileStore.Save(workspace, CreateDecisionArtifact());
+        var service = new FileSystemAgentInteractionService(_workspacesRootPath);
+
+        var proposal = service.ProposeUpdate(
+            new ProposeUpdateRequest(
+                "memora",
+                "ADR-001",
+                1,
+                CreateDecisionContent("Updated approved decision")));
+        var draftPath = Path.Combine(workspace.DraftsRootPath, "decision", "ADR-001.r0002.md");
+        var approvedRevisionTwoPath = Path.Combine(workspace.CanonicalDecisionsPath, "ADR-001.r0002.md");
+
+        Assert.True(proposal.IsSuccess);
+        Assert.True(File.Exists(draftPath));
+        Assert.False(File.Exists(approvedRevisionTwoPath));
+
+        var currentApproved = Assert.IsType<ArchitectureDecisionArtifact>(ParseArtifact(approvedPath));
+        var pendingProposal = Assert.IsType<ArchitectureDecisionArtifact>(ParseArtifact(draftPath));
+        var directApproval = _approvalWorkflow.Approve(
+            pendingProposal,
+            new DateTimeOffset(2026, 04, 18, 8, 45, 0, TimeSpan.Zero),
+            currentApproved);
+
+        Assert.False(directApproval.IsSuccess);
+        Assert.Contains(directApproval.Validation.Issues, issue => issue.Code == "approval.approve.status.invalid");
+        Assert.False(File.Exists(approvedRevisionTwoPath));
+
+        var reviewedDraft = pendingProposal with { Status = ArtifactStatus.Draft };
+        var approval = _approvalWorkflow.Approve(
+            reviewedDraft,
+            new DateTimeOffset(2026, 04, 18, 9, 0, 0, TimeSpan.Zero),
+            currentApproved);
+
+        Assert.True(approval.IsSuccess);
+        var approvedArtifact = Assert.IsType<ArchitectureDecisionArtifact>(approval.ApprovedArtifact);
+
+        _fileStore.Save(workspace, approvedArtifact);
+
+        Assert.True(File.Exists(approvedRevisionTwoPath));
+        Assert.Equal(ArtifactStatus.Approved, ParseArtifact(approvedRevisionTwoPath).Status);
+        Assert.True(File.Exists(Path.Combine(workspace.CanonicalDecisionsPath, "ADR-001.r0001.md")));
+    }
+
+    [Fact]
+    public void RejectedProposal_RemainsNonCanonicalAndLeavesPendingQueueInMemory()
+    {
+        var workspace = CreateWorkspace("memora");
+        var service = new FileSystemAgentInteractionService(_workspacesRootPath);
+
+        var proposal = service.ProposeArtifact(
+            new ProposeArtifactRequest(
+                "memora",
+                "ADR-200",
+                ArtifactType.Decision,
+                CreateDecisionContent("Rejected decision proposal")));
+        var draftPath = Path.Combine(workspace.DraftsRootPath, "decision", "ADR-200.r0001.md");
+
+        Assert.True(proposal.IsSuccess);
+
+        var pendingProposal = Assert.IsType<ArchitectureDecisionArtifact>(ParseArtifact(draftPath));
+        var initialQueue = _approvalQueueBuilder.Build("memora", [pendingProposal]);
+
+        Assert.Contains(initialQueue.Items, item => item.ArtifactId == "ADR-200");
+
+        var rejection = _approvalWorkflow.Reject(
+            pendingProposal,
+            new DateTimeOffset(2026, 04, 18, 9, 15, 0, TimeSpan.Zero));
+
+        Assert.True(rejection.IsSuccess);
+        var rejectedArtifact = Assert.IsType<ArchitectureDecisionArtifact>(rejection.RejectedArtifact);
+        var queueAfterReject = _approvalQueueBuilder.Build("memora", [rejectedArtifact]);
+
+        Assert.Equal(ArtifactStatus.Deprecated, rejectedArtifact.Status);
+        Assert.DoesNotContain(queueAfterReject.Items, item => item.ArtifactId == "ADR-200");
+        Assert.False(File.Exists(Path.Combine(workspace.CanonicalDecisionsPath, "ADR-200.r0001.md")));
     }
 
     [Fact]
@@ -137,6 +223,14 @@ public sealed class AgentLoopIntegrationTests : IDisposable
               """);
 
         return new ProjectWorkspace(new ProjectMetadata(projectId, "Memora", "active"), workspaceRootPath);
+    }
+
+    private ArtifactDocument ParseArtifact(string path)
+    {
+        var result = _parser.Parse(File.ReadAllText(path));
+
+        Assert.True(result.Validation.IsValid);
+        return Assert.IsAssignableFrom<ArtifactDocument>(result.Artifact);
     }
 
     private static ProjectCharterArtifact CreateCharterArtifact() =>

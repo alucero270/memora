@@ -8,7 +8,9 @@ Provides the local operator interface for Memora.
 - artifact browsing
 - draft editing
 - approval queue
+- approval review navigation
 - context inspection
+- understanding output inspection
 
 ## Does NOT contain
 - lifecycle rules
@@ -18,11 +20,12 @@ Provides the local operator interface for Memora.
 - runs as a styled local ASP.NET Core shell
 - reads workspace files through shared core and storage services
 - uses a writable local copy of `samples/workspaces` unless `MemoraUi__WorkspacesRoot` or `MEMORA_WORKSPACES_ROOT` is set
-- supports project selection, artifact browsing, draft editing, approval review previews, a context viewer route, and an understanding-output route
+- supports project selection, artifact browsing, draft editing, approval review previews, queue navigation, decision-readiness context, a context viewer route, and an understanding-output route
 
 ## Honest Scope
 - draft edits write new draft revisions to the selected workspace root
 - approval review surfaces are wired to current core diff and queue behavior
+- revision diffs show deterministic areas, display labels, raw paths, and before/after values
 - approval and rejection persistence are intentionally not claimed in this slice
 - understanding outputs remain read-only and are grounded in the shared context builder plus rebuildable traceability queries
 

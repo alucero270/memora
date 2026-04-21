@@ -79,7 +79,7 @@ public sealed class LocalOperatorWorkspaceService
         if (selectedRecord.IsPendingReview && currentApprovedArtifact is not null)
         {
             var diffResult = _diffBuilder.Build(currentApprovedArtifact, selectedRecord.Artifact);
-            diffIssues = diffResult.Validation.Issues.Select(issue => issue.Message).ToArray();
+            diffIssues = diffResult.Validation.Issues.Select(issue => issue.DiagnosticMessage).ToArray();
             revisionDiff = diffResult.Diff;
         }
 
@@ -119,7 +119,7 @@ public sealed class LocalOperatorWorkspaceService
         if (!result.IsSuccess || result.EditedArtifact is null)
         {
             return OperatorMutationResult.Invalid(
-                result.Validation.Issues.Select(issue => issue.Message));
+                result.Validation.Issues.Select(issue => issue.DiagnosticMessage));
         }
 
         var savedPath = _artifactFileStore.Save(artifactView.Project.Workspace, result.EditedArtifact);
@@ -178,7 +178,7 @@ public sealed class LocalOperatorWorkspaceService
         {
             var issues = string.Join(
                 "; ",
-                parseResult.Validation.Issues.Select(issue => issue.Code + ": " + issue.Message));
+                parseResult.Validation.Issues.Select(issue => issue.DiagnosticMessage));
 
             throw new InvalidDataException($"Artifact file '{filePath}' is invalid. {issues}");
         }

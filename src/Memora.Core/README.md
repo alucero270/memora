@@ -7,6 +7,7 @@ Defines Memora's core domain model and rules.
 - artifact schemas
 - lifecycle rules
 - validation primitives
+- validation diagnostic messages
 
 ## Does NOT contain
 - storage logic
@@ -21,5 +22,5 @@ Defines Memora's core domain model and rules.
 - `Validation/`: frontmatter, body, id, timestamp, and lifecycle validation
 - `Approval/`: approval queue and workflow rules
 - `Editing/`: draft-edit behavior
-- `Revisions/`: field-level revision diffs
+- `Revisions/`: field-level revision diffs with deterministic areas and display labels
 - `AgentInteraction/`: shared contracts used by API and MCP

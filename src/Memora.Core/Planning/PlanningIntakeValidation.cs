@@ -1,11 +1,15 @@
 using System.Collections.ObjectModel;
+using Memora.Core.Validation;
 
 namespace Memora.Core.Planning;
 
 public sealed record PlanningIntakeValidationIssue(
     string Code,
     string Message,
-    string? Path = null);
+    string? Path = null)
+{
+    public string DiagnosticMessage => ValidationDiagnosticFormatter.Format(Code, Message, Path);
+}
 
 public sealed class PlanningIntakeValidationResult
 {

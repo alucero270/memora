@@ -80,7 +80,9 @@ public sealed class FileSystemAgentInteractionServiceTests : IDisposable
                     })));
 
         Assert.False(response.IsSuccess);
-        Assert.Contains(response.Errors, error => error.Code == "artifact.frontmatter.missing");
+        var error = Assert.Single(response.Errors, error => error.Code == "artifact.frontmatter.missing");
+        Assert.Contains("code: artifact.frontmatter.missing", error.Message, StringComparison.Ordinal);
+        Assert.Contains("path: decision_date", error.Message, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(workspace.DraftsRootPath, "decision", "ADR-102.r0001.md")));
     }
 
@@ -126,7 +128,9 @@ public sealed class FileSystemAgentInteractionServiceTests : IDisposable
                     })));
 
         Assert.False(response.IsSuccess);
-        Assert.Contains(response.Errors, error => error.Code == "artifact.frontmatter.missing");
+        var error = Assert.Single(response.Errors, error => error.Code == "artifact.frontmatter.missing");
+        Assert.Contains("code: artifact.frontmatter.missing", error.Message, StringComparison.Ordinal);
+        Assert.Contains("path: outcome", error.Message, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(workspace.DraftsRootPath, "outcome", "OUT-002.r0001.md")));
     }
 

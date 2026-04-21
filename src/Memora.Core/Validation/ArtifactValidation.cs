@@ -3,7 +3,10 @@ using Memora.Core.Artifacts;
 
 namespace Memora.Core.Validation;
 
-public sealed record ArtifactValidationIssue(string Code, string Message, string? Path = null);
+public sealed record ArtifactValidationIssue(string Code, string Message, string? Path = null)
+{
+    public string DiagnosticMessage => ValidationDiagnosticFormatter.Format(Code, Message, Path);
+}
 
 public sealed class ArtifactValidationResult
 {
@@ -35,4 +38,16 @@ internal sealed class ValidationCollector
     }
 
     public ArtifactValidationResult ToResult() => new(_issues);
+}
+
+internal static class ValidationDiagnosticFormatter
+{
+    public static string Format(string code, string message, string? path)
+    {
+        var location = string.IsNullOrWhiteSpace(path)
+            ? "not provided"
+            : path.Trim();
+
+        return $"{message} (code: {code}; path: {location})";
+    }
 }

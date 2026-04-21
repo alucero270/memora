@@ -32,11 +32,13 @@ public sealed class SqliteIndexRebuilder
 
         var parsedArtifacts = new List<ParsedArtifactRecord>();
         var revisionKeys = new HashSet<(string ProjectId, string ArtifactId, int Revision)>();
+        var artifactFileCount = 0;
 
         foreach (var workspace in workspaces)
         {
             foreach (var filePath in EnumerateArtifactFiles(workspace))
             {
+                artifactFileCount++;
                 var markdown = File.ReadAllText(filePath);
                 var parseResult = _markdownParser.Parse(markdown);
 
@@ -146,8 +148,8 @@ public sealed class SqliteIndexRebuilder
         ReplaceIndexContents(connection, projectRows, artifactRows, revisionRows, relationshipRows, diagnostics.Count == 0);
 
         return diagnostics.Count == 0
-            ? new IndexRebuildResult(projectRows.Count, artifactRows.Count, revisionRows.Count, relationshipRows.Count, diagnostics)
-            : new IndexRebuildResult(0, 0, 0, 0, diagnostics);
+            ? new IndexRebuildResult(projectRows.Count, artifactRows.Count, revisionRows.Count, relationshipRows.Count, diagnostics, projectRows.Count, artifactFileCount)
+            : new IndexRebuildResult(0, 0, 0, 0, diagnostics, projectRows.Count, artifactFileCount);
     }
 
     private static IReadOnlyList<string> EnumerateArtifactFiles(ProjectWorkspace workspace)
