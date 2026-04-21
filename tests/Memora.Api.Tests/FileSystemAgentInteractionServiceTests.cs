@@ -1,6 +1,7 @@
 using Memora.Api.Services;
 using Memora.Core.AgentInteraction;
 using Memora.Core.Artifacts;
+using Memora.Core.Automation;
 using Memora.Core.Projects;
 using Memora.Storage.Persistence;
 using Memora.Storage.Workspaces;
@@ -134,6 +135,103 @@ public sealed class FileSystemAgentInteractionServiceTests : IDisposable
         Assert.False(File.Exists(Path.Combine(workspace.DraftsRootPath, "outcome", "OUT-002.r0001.md")));
     }
 
+    [Fact]
+    public void WriteSessionSummary_ExplicitPolicyGovernedTrigger_PersistsToSummaryStorage()
+    {
+        var workspace = CreateWorkspace("memora");
+        var service = new FileSystemAgentInteractionService(_workspacesRootPath);
+
+        var response = service.WriteSessionSummary(
+            new PolicyGovernedSessionSummaryWriteRequest(
+                "memora",
+                "SUM-001",
+                CreateSessionSummaryContent(),
+                CreateSessionSummaryPolicy(),
+                CreateExplicitSessionSummaryTrigger("SUM-001")));
+
+        Assert.True(response.IsSuccess);
+        Assert.Equal(ArtifactStatus.Proposed, response.ResultingStatus);
+        Assert.Equal(AutomationStorageScope.Summary, response.StorageScope);
+        Assert.True(File.Exists(Path.Combine(workspace.SummariesRootPath, "SUM-001.r0001.md")));
+        Assert.False(File.Exists(Path.Combine(workspace.CanonicalRootPath, "SUM-001.r0001.md")));
+    }
+
+    [Fact]
+    public void WriteSessionSummary_LifecycleTrigger_IsBlockedAndDoesNotWrite()
+    {
+        var workspace = CreateWorkspace("memora");
+        var service = new FileSystemAgentInteractionService(_workspacesRootPath);
+        var before = CreateSummaryArtifact(ArtifactStatus.Proposed);
+        var after = CreateSummaryArtifact(ArtifactStatus.Draft);
+
+        var response = service.WriteSessionSummary(
+            new PolicyGovernedSessionSummaryWriteRequest(
+                "memora",
+                "SUM-001",
+                CreateSessionSummaryContent(),
+                CreateSessionSummaryPolicy(),
+                ControlledAutomationTriggerEvent.FromLifecycleTransition(
+                    "event-001",
+                    before,
+                    after,
+                    new DateTimeOffset(2026, 4, 21, 12, 0, 0, TimeSpan.Zero))));
+
+        Assert.False(response.IsSuccess);
+        Assert.Contains(response.Errors, error => error.Code == "automation.trigger.explicit_required");
+        Assert.False(File.Exists(Path.Combine(workspace.SummariesRootPath, "SUM-001.r0001.md")));
+    }
+
+    [Fact]
+    public void WriteSessionSummary_InvalidPolicy_IsBlockedAndDoesNotWrite()
+    {
+        var workspace = CreateWorkspace("memora");
+        var service = new FileSystemAgentInteractionService(_workspacesRootPath);
+        var policy = new ControlledAutomationPolicy(
+            "plan-direct-write",
+            "Plan direct-write attempt",
+            enabled: true,
+            requiresExplicitTrigger: true,
+            [
+                new ControlledAutomationPermission(
+                    ControlledAutomationAction.DirectWrite,
+                    ArtifactType.Plan,
+                    AutomationStorageScope.Canonical,
+                    ["reviewed by operator"])
+            ]);
+
+        var response = service.WriteSessionSummary(
+            new PolicyGovernedSessionSummaryWriteRequest(
+                "memora",
+                "SUM-001",
+                CreateSessionSummaryContent(),
+                policy,
+                CreateExplicitSessionSummaryTrigger("SUM-001")));
+
+        Assert.False(response.IsSuccess);
+        Assert.Contains(response.Errors, error => error.Code == "automation.policy.artifact_type.not_low_risk");
+        Assert.False(File.Exists(Path.Combine(workspace.SummariesRootPath, "SUM-001.r0001.md")));
+    }
+
+    [Fact]
+    public void WriteSessionSummary_CanonicalTrueContent_IsBlockedAndDoesNotWrite()
+    {
+        var workspace = CreateWorkspace("memora");
+        var service = new FileSystemAgentInteractionService(_workspacesRootPath);
+        var content = CreateSessionSummaryContent(canonical: true);
+
+        var response = service.WriteSessionSummary(
+            new PolicyGovernedSessionSummaryWriteRequest(
+                "memora",
+                "SUM-001",
+                content,
+                CreateSessionSummaryPolicy(),
+                CreateExplicitSessionSummaryTrigger("SUM-001")));
+
+        Assert.False(response.IsSuccess);
+        Assert.Contains(response.Errors, error => error.Code == "artifact.session_summary.canonical.invalid");
+        Assert.False(File.Exists(Path.Combine(workspace.SummariesRootPath, "SUM-001.r0001.md")));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_workspacesRootPath))
@@ -197,6 +295,88 @@ public sealed class FileSystemAgentInteractionServiceTests : IDisposable
             {
                 ["outcome"] = "success"
             });
+
+    private static ArtifactProposalContent CreateSessionSummaryContent(bool canonical = false) =>
+        new(
+            "Execution summary",
+            "automation",
+            "Record a non-canonical execution summary.",
+            ["automation", "summary"],
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["Summary"] = "The session completed with controlled automation validation.",
+                ["Artifacts Created"] = "- SUM-001",
+                ["Artifacts Updated"] = "None.",
+                ["Open Threads"] = "Review the generated summary."
+            },
+            AgentArtifactLinks.Empty,
+            new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["session_type"] = "execution",
+                ["canonical"] = canonical
+            });
+
+    private static ControlledAutomationPolicy CreateSessionSummaryPolicy()
+    {
+        LowRiskArtifactClassCatalog.TryGetDefinition(ArtifactType.SessionSummary, out var definition);
+
+        return new ControlledAutomationPolicy(
+            "summary-direct-write",
+            "Summary direct-write prototype",
+            enabled: true,
+            requiresExplicitTrigger: true,
+            [
+                new ControlledAutomationPermission(
+                    ControlledAutomationAction.DirectWrite,
+                    ArtifactType.SessionSummary,
+                    definition.StorageScope,
+                    definition.RequiredGuardrails)
+            ]);
+    }
+
+    private static ControlledAutomationTriggerEvent CreateExplicitSessionSummaryTrigger(string artifactId) =>
+        ControlledAutomationTriggerEvent.ExplicitOperatorRequest(
+            "event-001",
+            "memora",
+            ArtifactType.SessionSummary,
+            artifactId,
+            new DateTimeOffset(2026, 4, 21, 12, 0, 0, TimeSpan.Zero));
+
+    private static SessionSummaryArtifact CreateSummaryArtifact(ArtifactStatus status) =>
+        new(
+            "SUM-001",
+            "memora",
+            status,
+            "Execution summary",
+            new DateTimeOffset(2026, 4, 21, 11, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 4, 21, 11, 30, 0, TimeSpan.Zero),
+            1,
+            ["summary"],
+            "test",
+            "trigger test",
+            ArtifactLinks.Empty,
+            """
+            ## Summary
+            The session completed.
+
+            ## Artifacts Created
+            - SUM-001
+
+            ## Artifacts Updated
+            None.
+
+            ## Open Threads
+            Review the generated summary.
+            """,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["Summary"] = "The session completed.",
+                ["Artifacts Created"] = "- SUM-001",
+                ["Artifacts Updated"] = "None.",
+                ["Open Threads"] = "Review the generated summary."
+            },
+            SessionType.Execution,
+            false);
 
     private static ArchitectureDecisionArtifact CreateApprovedDecisionArtifact() =>
         new(
