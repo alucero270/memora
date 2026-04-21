@@ -88,7 +88,8 @@ public sealed class LocalOperatorWorkspaceService
             selectedRecord,
             currentApprovedArtifact,
             revisionDiff,
-            diffIssues);
+            diffIssues,
+            BuildReviewQueueContext(project, selectedRecord));
     }
 
     public OperatorMutationResult EditDraft(
@@ -195,6 +196,26 @@ public sealed class LocalOperatorWorkspaceService
             record.Artifact.Revision == item.Revision &&
             record.Artifact.UpdatedAtUtc == item.PendingSinceUtc);
 
+    private static OperatorReviewQueueContext? BuildReviewQueueContext(
+        OperatorProjectSnapshot project,
+        OperatorArtifactRecord selectedRecord)
+    {
+        var selectedIndex = Array.FindIndex(
+            project.PendingItems.ToArray(),
+            item => string.Equals(item.Record.RelativePath, selectedRecord.RelativePath, StringComparison.Ordinal));
+
+        if (selectedIndex < 0)
+        {
+            return null;
+        }
+
+        return new OperatorReviewQueueContext(
+            selectedIndex + 1,
+            project.PendingItems.Count,
+            selectedIndex > 0 ? project.PendingItems[selectedIndex - 1] : null,
+            selectedIndex + 1 < project.PendingItems.Count ? project.PendingItems[selectedIndex + 1] : null);
+    }
+
     private static string NormalizeRelativePath(string relativePath) =>
         relativePath
             .Trim()
@@ -231,7 +252,14 @@ public sealed record OperatorArtifactView(
     OperatorArtifactRecord SelectedArtifact,
     ArtifactDocument? CurrentApprovedArtifact,
     ArtifactRevisionDiff? RevisionDiff,
-    IReadOnlyList<string> DiffIssues);
+    IReadOnlyList<string> DiffIssues,
+    OperatorReviewQueueContext? ReviewQueueContext);
+
+public sealed record OperatorReviewQueueContext(
+    int Position,
+    int TotalItems,
+    OperatorPendingReviewItem? PreviousItem,
+    OperatorPendingReviewItem? NextItem);
 
 public sealed record OperatorArtifactEditInput(
     string? Title,

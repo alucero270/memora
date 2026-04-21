@@ -69,6 +69,11 @@ public sealed class OperatorShellSmokeTests : IClassFixture<OperatorShellFactory
         var html = await client.GetStringAsync("/projects/demo-project/review?path=drafts%2Fplan%2FPLN-001.r0001.md");
 
         Assert.Contains("Revision Review", html);
+        Assert.Contains("Review item 1 of 2", html);
+        Assert.Contains("Decision Readiness", html);
+        Assert.Contains("Approve", html);
+        Assert.Contains("Reject", html);
+        Assert.Contains("Return to queue", html);
         Assert.Contains("Current UI boundary", html);
         Assert.Contains("approval and rejection persistence remain outside this UI slice", html, StringComparison.OrdinalIgnoreCase);
     }
