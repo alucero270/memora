@@ -268,11 +268,13 @@ internal static class OperatorShellPageRenderer
         }
         else
         {
-            body.AppendLine("<table><thead><tr><th>Field</th><th>Change</th><th>Before</th><th>After</th></tr></thead><tbody>");
+            body.AppendLine(RenderRevisionDiffSummary(view.RevisionDiff));
+            body.AppendLine("<table><thead><tr><th>Area</th><th>Field</th><th>Change</th><th>Before</th><th>After</th></tr></thead><tbody>");
             foreach (var change in view.RevisionDiff.Changes)
             {
                 body.AppendLine("<tr>");
-                body.AppendLine($"<td><code>{Encode(change.Path)}</code></td>");
+                body.AppendLine($"<td>{Encode(FormatChangeArea(change.Area))}</td>");
+                body.AppendLine($"<td>{Encode(change.DisplayPath)}<br><code>{Encode(change.Path)}</code></td>");
                 body.AppendLine($"<td>{Encode(change.Kind.ToString().ToLowerInvariant())}</td>");
                 body.AppendLine($"<td>{Encode(change.BeforeValue ?? "n/a")}</td>");
                 body.AppendLine($"<td>{Encode(change.AfterValue ?? "n/a")}</td>");
@@ -431,6 +433,25 @@ internal static class OperatorShellPageRenderer
         return html.ToString();
     }
 
+    private static string RenderRevisionDiffSummary(Memora.Core.Revisions.ArtifactRevisionDiff diff)
+    {
+        var changedAreas = string.Join(
+            ", ",
+            diff.ChangedAreas.Select(FormatChangeArea));
+
+        return $"<p class=\"diff-summary\">{Encode(diff.ChangeCount.ToString(CultureInfo.InvariantCulture))} field change(s) across {Encode(changedAreas)}.</p>";
+    }
+
+    private static string FormatChangeArea(Memora.Core.Revisions.ArtifactFieldChangeArea area) =>
+        area switch
+        {
+            Memora.Core.Revisions.ArtifactFieldChangeArea.Metadata => "Metadata",
+            Memora.Core.Revisions.ArtifactFieldChangeArea.Sections => "Sections",
+            Memora.Core.Revisions.ArtifactFieldChangeArea.Links => "Links",
+            Memora.Core.Revisions.ArtifactFieldChangeArea.TypeSpecific => "Type-specific",
+            _ => area.ToString()
+        };
+
     private static string RenderReviewNavigation(OperatorArtifactView view)
     {
         var context = view.ReviewQueueContext;
@@ -553,6 +574,7 @@ pre { white-space: pre-wrap; margin: 0; }
 .review-nav, .decision-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .queue-position { display: inline-flex; border: 1px solid rgba(125, 52, 31, 0.18); border-radius: 999px; padding: 8px 12px; background: rgba(255, 255, 255, 0.58); }
 .decision-panel { border-color: rgba(91, 56, 35, 0.24); }
+.diff-summary { font-weight: 700; }
 .alert { border-color: rgba(146, 50, 40, 0.34); }
 .note { background: rgba(245, 232, 210, 0.85); }
 .footer { margin-top: 20px; }

@@ -10,11 +10,46 @@ public enum ArtifactFieldChangeKind
     Modified
 }
 
+public enum ArtifactFieldChangeArea
+{
+    Metadata,
+    Sections,
+    Links,
+    TypeSpecific
+}
+
 public sealed record ArtifactFieldChange(
     string Path,
     string? BeforeValue,
     string? AfterValue,
-    ArtifactFieldChangeKind Kind);
+    ArtifactFieldChangeKind Kind)
+{
+    public ArtifactFieldChangeArea Area => Path switch
+    {
+        _ when Path.StartsWith("sections.", StringComparison.Ordinal) => ArtifactFieldChangeArea.Sections,
+        _ when Path.StartsWith("links.", StringComparison.Ordinal) => ArtifactFieldChangeArea.Links,
+        _ when Path.StartsWith("type_specific.", StringComparison.Ordinal) => ArtifactFieldChangeArea.TypeSpecific,
+        _ => ArtifactFieldChangeArea.Metadata
+    };
+
+    public string DisplayPath => Path switch
+    {
+        "title" => "Title",
+        "reason" => "Reason",
+        "provenance" => "Provenance",
+        "tags" => "Tags",
+        _ when Path.StartsWith("sections.", StringComparison.Ordinal) =>
+            "Section: " + Path["sections.".Length..],
+        _ when Path.StartsWith("links.", StringComparison.Ordinal) =>
+            "Link: " + FormatKey(Path["links.".Length..]),
+        _ when Path.StartsWith("type_specific.", StringComparison.Ordinal) =>
+            "Type-specific: " + FormatKey(Path["type_specific.".Length..]),
+        _ => Path
+    };
+
+    private static string FormatKey(string key) =>
+        key.Replace('_', ' ');
+}
 
 public sealed class ArtifactRevisionDiff
 {
@@ -35,6 +70,15 @@ public sealed class ArtifactRevisionDiff
     public IReadOnlyList<ArtifactFieldChange> Changes { get; }
 
     public bool HasChanges => Changes.Count > 0;
+
+    public int ChangeCount => Changes.Count;
+
+    public IReadOnlyList<ArtifactFieldChangeArea> ChangedAreas =>
+        Changes
+            .Select(change => change.Area)
+            .Distinct()
+            .OrderBy(area => area)
+            .ToArray();
 }
 
 public sealed class ArtifactRevisionDiffResult

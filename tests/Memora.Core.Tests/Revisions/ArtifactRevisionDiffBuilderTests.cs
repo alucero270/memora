@@ -44,6 +44,12 @@ public sealed class ArtifactRevisionDiffBuilderTests
         var diff = Assert.IsType<ArtifactRevisionDiff>(result.Diff);
         Assert.Equal(currentApproved.Revision, diff.CurrentApprovedArtifact.Revision);
         Assert.Equal(candidate.Revision, diff.CandidateArtifact.Revision);
+        Assert.Equal(9, diff.ChangeCount);
+        Assert.Collection(
+            diff.ChangedAreas,
+            area => Assert.Equal(ArtifactFieldChangeArea.Metadata, area),
+            area => Assert.Equal(ArtifactFieldChangeArea.Sections, area),
+            area => Assert.Equal(ArtifactFieldChangeArea.TypeSpecific, area));
         Assert.Collection(
             diff.Changes.Select(change => change.Path),
             path => Assert.Equal("reason", path),
@@ -60,6 +66,16 @@ public sealed class ArtifactRevisionDiffBuilderTests
         Assert.Equal("plan title", titleChange.BeforeValue);
         Assert.Equal("Updated approved plan", titleChange.AfterValue);
         Assert.Equal(ArtifactFieldChangeKind.Modified, titleChange.Kind);
+        Assert.Equal(ArtifactFieldChangeArea.Metadata, titleChange.Area);
+        Assert.Equal("Title", titleChange.DisplayPath);
+
+        var sectionChange = Assert.Single(diff.Changes, change => change.Path == "sections.Goal");
+        Assert.Equal(ArtifactFieldChangeArea.Sections, sectionChange.Area);
+        Assert.Equal("Section: Goal", sectionChange.DisplayPath);
+
+        var typeSpecificChange = Assert.Single(diff.Changes, change => change.Path == "type_specific.priority");
+        Assert.Equal(ArtifactFieldChangeArea.TypeSpecific, typeSpecificChange.Area);
+        Assert.Equal("Type-specific: priority", typeSpecificChange.DisplayPath);
     }
 
     [Fact]
