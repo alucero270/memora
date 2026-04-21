@@ -1,4 +1,5 @@
 using Memora.Core.Artifacts;
+using Memora.Core.Automation;
 
 namespace Memora.Core.AgentInteraction;
 
@@ -298,6 +299,59 @@ public sealed record OutcomeResponse(
             ? throw new ArgumentOutOfRangeException(nameof(Revision), "Revision must be greater than zero.")
             : 0;
     public OutcomeKind OutcomeKind { get; } = OutcomeKind;
+}
+
+public sealed record PolicyGovernedSessionSummaryWriteRequest
+{
+    public PolicyGovernedSessionSummaryWriteRequest(
+        string projectId,
+        string artifactId,
+        ArtifactProposalContent content,
+        ControlledAutomationPolicy policy,
+        ControlledAutomationTriggerEvent triggerEvent)
+    {
+        ProjectId = AgentInteractionContractHelpers.RequireValue(projectId, nameof(projectId), "Project id is required.");
+        ArtifactId = AgentInteractionContractHelpers.RequireValue(artifactId, nameof(artifactId), "Artifact id is required.");
+        Content = content ?? throw new ArgumentNullException(nameof(content));
+        Policy = policy ?? throw new ArgumentNullException(nameof(policy));
+        TriggerEvent = triggerEvent ?? throw new ArgumentNullException(nameof(triggerEvent));
+    }
+
+    public string ProjectId { get; }
+
+    public string ArtifactId { get; }
+
+    public ArtifactProposalContent Content { get; }
+
+    public ControlledAutomationPolicy Policy { get; }
+
+    public ControlledAutomationTriggerEvent TriggerEvent { get; }
+
+    public ArtifactType ArtifactType => ArtifactType.SessionSummary;
+}
+
+public sealed record PolicyGovernedWriteResponse(
+    string ProjectId,
+    string ArtifactId,
+    ArtifactType ArtifactType,
+    ArtifactStatus ResultingStatus,
+    int Revision,
+    AutomationStorageScope StorageScope,
+    string? WrittenPath,
+    IReadOnlyList<AgentInteractionError> Errors)
+    : AgentInteractionResponse(Errors)
+{
+    public string ProjectId { get; } = AgentInteractionContractHelpers.RequireValue(ProjectId, nameof(ProjectId), "Project id is required.");
+    public string ArtifactId { get; } = AgentInteractionContractHelpers.RequireValue(ArtifactId, nameof(ArtifactId), "Artifact id is required.");
+    public ArtifactType ArtifactType { get; } = ArtifactType;
+    public ArtifactStatus ResultingStatus { get; } = ResultingStatus;
+    public int Revision { get; } = Revision > 0
+        ? Revision
+        : Errors.Count == 0
+            ? throw new ArgumentOutOfRangeException(nameof(Revision), "Revision must be greater than zero.")
+            : 0;
+    public AutomationStorageScope StorageScope { get; } = StorageScope;
+    public string? WrittenPath { get; } = string.IsNullOrWhiteSpace(WrittenPath) ? null : WrittenPath.Trim();
 }
 
 public interface IAgentInteractionService

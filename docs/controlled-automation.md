@@ -67,3 +67,19 @@ from explicit operator requests:
 - trigger evaluation returns an eligibility decision and reason codes only
 - trigger evaluation does not persist artifacts, approve artifacts, or mutate
   canonical truth
+
+## Selective Direct-Write Prototype
+
+The current prototype is limited to `session_summary` artifacts. A write can
+proceed only when:
+
+- the policy validates against the low-risk class catalog
+- the trigger is an explicit operator request
+- the requested artifact type is `session_summary`
+- the session summary schema validates with `canonical: false`
+- the target artifact id does not already exist
+- the write target is the summaries store, not canonical storage
+
+The prototype does not expose a general direct-write path and does not apply to
+plans, decisions, constraints, questions, outcomes, charters, or approved repo
+structure artifacts.
