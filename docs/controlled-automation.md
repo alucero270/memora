@@ -54,3 +54,16 @@ must:
 
 The policy model is inert by itself. It does not register event triggers, start
 automation, or create a write path.
+
+## Safe Trigger Events
+
+Controlled automation trigger handling distinguishes observed lifecycle events
+from explicit operator requests:
+
+- lifecycle and approval-adjacent events can be represented for audit and
+  future workflow evaluation
+- policy-governed automation requires an explicit trigger before it can become
+  eligible
+- trigger evaluation returns an eligibility decision and reason codes only
+- trigger evaluation does not persist artifacts, approve artifacts, or mutate
+  canonical truth
