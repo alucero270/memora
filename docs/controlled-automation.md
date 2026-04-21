@@ -40,3 +40,17 @@ In v1, low-risk classification does not weaken governance:
 - direct canonical writes are not allowed by these definitions
 - future automation must add explicit policy checks before any write can occur
 
+## Policy Model
+
+Controlled automation policies are explicit data models in core. A valid policy
+must:
+
+- name the policy and declare whether it is enabled
+- require an explicit trigger
+- list each allowed action, artifact type, storage scope, and guardrail
+- refer only to low-risk candidate artifact classes
+- include every guardrail required by the artifact-class definition
+- reject canonical write scope when the artifact class does not allow it
+
+The policy model is inert by itself. It does not register event triggers, start
+automation, or create a write path.
