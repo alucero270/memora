@@ -16,6 +16,7 @@ Docs must describe current implementation honestly and keep roadmap work clearly
 - `openwebui-openapi.md` for the current Open WebUI companion API path
 - `claude-integration.md` for the current Claude-oriented setup guidance
 - `codex-integration.md` for the current Codex-oriented setup guidance
+- `delivery-process.md` for milestone closeout and stacked PR cleanup guidance
 - `milestones.md` for roadmap sequencing
 - `repo-structure.md` for folder-level navigation
 
