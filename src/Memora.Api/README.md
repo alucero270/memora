@@ -16,7 +16,7 @@ Exposes Memora capabilities through a local OpenAPI-compatible service.
 ## Key Areas
 
 - `Program.cs`: route registration and service wiring
-- `Services/FileSystemAgentInteractionService.cs`: file-backed project, context, proposal, outcome, and guarded session-summary write flow
+- `Services/FileSystemAgentInteractionService.cs`: file-backed project, cached context, proposal, outcome, and guarded session-summary write flow
 - `Services/UnavailableAgentInteractionService.cs`: guarded fallback when no workspace root is configured
 - `AgentInteractionHttpResults.cs`: maps shared contract results to HTTP responses
 
@@ -25,6 +25,7 @@ Exposes Memora capabilities through a local OpenAPI-compatible service.
 - endpoints are minimal and focused on the shared agent interaction contract
 - the host publishes a companion OpenAPI document at `/openapi.json`
 - the file-backed path is only active when a workspace root is configured
+- context cache reuse is derived from freshly loaded filesystem artifacts and never replaces filesystem truth
 - validation errors preserve structured code/path fields and use diagnostic messages from core validation
 - the guarded direct-write prototype is limited to non-canonical session summaries in summary storage
 - this host is intentionally thin and does not claim a full production API surface
