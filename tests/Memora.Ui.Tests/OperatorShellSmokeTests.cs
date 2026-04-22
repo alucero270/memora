@@ -44,7 +44,7 @@ public sealed class OperatorShellSmokeTests : IClassFixture<OperatorShellFactory
 
         var html = await client.GetStringAsync("/projects/demo-project");
 
-        Assert.Contains("Artifact Browser", html);
+        Assert.Contains("Artifacts", html);
         Assert.Contains("Approval Queue", html);
         Assert.Contains("CHR-001.r0001.md", html);
     }
