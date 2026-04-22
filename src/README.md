@@ -30,7 +30,7 @@ Keep module boundaries strict. Do not duplicate domain rules across projects.
 - `Memora.Core`: domain rules, lifecycle, validation diagnostics, approval queue, diffs, controlled automation policy and safety models, and shared agent contracts
 - `Memora.Storage`: parsing, markdown writing, file persistence, and workspace discovery
 - `Memora.Index`: SQLite schema plus rebuild logic and diagnostics from filesystem truth
-- `Memora.Context`: ranking, inclusion reasoning, and layered context bundle assembly
+- `Memora.Context`: deterministic ranking, cached context packages, bounded relationship traversal, inclusion reasoning, layered context bundle assembly, and optional future retrieval extension boundaries
 - `Memora.Api`: minimal HTTP host over the shared agent interaction service, plus the guarded file-backed session-summary write prototype
 - `Memora.Mcp`: thin MCP adapter surface over the same shared contract
 - `Memora.Ui`: styled operator shell, review workflow views, context viewer, and understanding outputs
