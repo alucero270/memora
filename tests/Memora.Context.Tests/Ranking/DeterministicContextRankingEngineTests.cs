@@ -87,6 +87,28 @@ public sealed class DeterministicContextRankingEngineTests
         Assert.Equal(["ADR-001", "ADR-002"], ranked.Select(result => result.Artifact.Artifact.Id));
     }
 
+    [Fact]
+    public void Rank_PreservesBreakdownsForIdenticalInputsRegardlessOfInputOrder()
+    {
+        var request = new ContextBundleRequest(
+            "memora",
+            "Prepare milestone 3 context for ADR-010.",
+            focusArtifactIds: ["ADR-010"],
+            focusTags: ["milestone-3", "context"]);
+        var artifacts = new[]
+        {
+            CreateCandidate("ADR-010", ArtifactStatus.Approved, ContextArtifactOrigin.CanonicalApproved, tags: ["milestone-3", "context"]),
+            CreateCandidate("ADR-020", ArtifactStatus.Approved, ContextArtifactOrigin.CanonicalApproved, tags: ["milestone-3"]),
+            CreateCandidate("ADR-030", ArtifactStatus.Approved, ContextArtifactOrigin.CanonicalApproved, tags: ["context"])
+        };
+
+        var first = _engine.Rank(request, artifacts);
+        var second = _engine.Rank(request, artifacts.Reverse().ToArray());
+
+        Assert.Equal(first.Select(result => result.Artifact.Artifact.Id), second.Select(result => result.Artifact.Artifact.Id));
+        Assert.Equal(first.Select(result => result.Breakdown), second.Select(result => result.Breakdown));
+    }
+
     private static ContextBundleArtifact CreateCandidate(
         string id,
         ArtifactStatus status,
