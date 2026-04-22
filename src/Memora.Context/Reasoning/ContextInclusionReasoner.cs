@@ -52,9 +52,12 @@ public sealed class ContextInclusionReasoner
                 [artifact.Id]));
         }
 
-        var relatedFocusArtifactIds = artifact.Links.Relationships
-            .Select(relationship => relationship.TargetArtifactId)
-            .Where(targetArtifactId => request.FocusArtifactIds.Contains(targetArtifactId, StringComparer.Ordinal))
+        var relatedFocusArtifactIds = rankedArtifact.RelationshipPaths
+            .Where(path => path.Depth == 1)
+            .Select(path => path.FocusArtifactId)
+            .Concat(artifact.Links.Relationships
+                .Select(relationship => relationship.TargetArtifactId)
+                .Where(targetArtifactId => request.FocusArtifactIds.Contains(targetArtifactId, StringComparer.Ordinal)))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(targetArtifactId => targetArtifactId, StringComparer.Ordinal)
             .ToArray();
@@ -63,8 +66,23 @@ public sealed class ContextInclusionReasoner
         {
             reasons.Add(new ContextInclusionReason(
                 "related-focus-artifact",
-                "Included because it has an explicit stored relationship to a focused artifact.",
+                "Included because it has an explicit stored relationship with a focused artifact.",
                 relatedFocusArtifactIds));
+        }
+
+        var traversedFocusArtifactIds = rankedArtifact.RelationshipPaths
+            .Where(path => path.Depth > 1)
+            .SelectMany(path => path.ArtifactIds.Skip(1))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(artifactId => artifactId, StringComparer.Ordinal)
+            .ToArray();
+
+        if (traversedFocusArtifactIds.Length > 0)
+        {
+            reasons.Add(new ContextInclusionReason(
+                "traversed-focus-artifact",
+                "Included because bounded explicit relationship traversal connects it to a focused artifact.",
+                traversedFocusArtifactIds));
         }
 
         if (rankedArtifact.Breakdown.MilestoneRelevance > 0)
