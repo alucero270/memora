@@ -35,6 +35,10 @@ It is intentionally separate from roadmap and milestone planning docs.
   - artifact updates
   - outcome recording
 - a thin MCP adapter in `Memora.Mcp` over the shared agent interaction contract
+- a provider-agnostic external runtime contract definition shared by MCP and OpenAPI
+- a documented Machina-to-Memora interaction model that keeps runtime execution outside Memora
+- runtime-facing prototype coverage for deterministic context retrieval and proposal submission through the current OpenAPI path
+- shared compatibility validation across the current MCP and OpenAPI runtime-facing surfaces
 
 ### Controlled Automation
 
@@ -63,6 +67,7 @@ It is intentionally separate from roadmap and milestone planning docs.
 - UI review is preview-oriented and does not persist approval or rejection decisions
 - API is a minimal HTTP surface, not a fully documented production service
 - MCP is currently an in-process adapter surface, not a complete hosted server transport
+- runtime alignment is grounded in the shared contract, but provider-specific attachments still remain follow-up work
 - context assembly is deterministic and explainable, but remains non-semantic and non-vector in v1
 - cached context packages are derived convenience and never replace filesystem truth
 - rebuild diagnostics identify filesystem issues, but they do not auto-repair artifacts or indexes
@@ -78,6 +83,7 @@ It is intentionally separate from roadmap and milestone planning docs.
 - `src/Memora.Core/Automation/`
 - `src/Memora.Core/Revisions/`
 - `src/Memora.Core/AgentInteraction/AgentInteractionContract.cs`
+- `src/Memora.Core/AgentInteraction/ExternalRuntimeContract.cs`
 
 ### Storage
 
@@ -108,6 +114,8 @@ It is intentionally separate from roadmap and milestone planning docs.
 - `src/Memora.Api/Program.cs`
 - `src/Memora.Api/Services/FileSystemAgentInteractionService.cs`
 - `src/Memora.Api/AgentInteractionHttpResults.cs`
+- `tests/Memora.Api.Tests/RuntimeFacingPrototypeTests.cs`
+- `tests/Memora.Api.Tests/RuntimeContractCompatibilityTests.cs`
 
 ### Controlled Automation Docs
 
@@ -116,6 +124,12 @@ It is intentionally separate from roadmap and milestone planning docs.
 ### MCP
 
 - `src/Memora.Mcp/Server/MemoraMcpServer.cs`
+
+### Runtime Alignment Docs
+
+- `docs/external-runtime-contract.md`
+- `docs/machina-interaction-model.md`
+- `docs/integration-strategy.md`
 
 ### UI
 

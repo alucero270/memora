@@ -20,8 +20,11 @@ This checkout includes working slices across:
 - filesystem parsing and persistence for canonical, draft, and summary artifacts
 - SQLite rebuild-from-files indexing with filesystem-first rebuild diagnostics
 - deterministic context ranking, inclusion reasoning, and layered context assembly
+- a provider-agnostic external runtime contract reused by MCP and OpenAPI
 - a minimal local HTTP API for project lookup, context assembly, proposals, updates, and outcomes
 - a thin MCP surface over the shared agent interaction contract
+- Machina-to-Memora interaction guidance that keeps runtime execution outside Memora
+- runtime-facing prototype and compatibility validation for context and proposal flows across MCP and OpenAPI
 - controlled automation policy models, safe trigger evaluation, and a guarded session-summary direct-write prototype
 - a styled local operator UI with approval review navigation, clearer revision diffs, a context viewer route, and an understanding-output route
 - operator workflow guidance for review, draft editing, diff inspection, and rebuild recovery
@@ -33,6 +36,7 @@ Important limits still apply:
 - no semantic or vector retrieval exists in core v1
 - the UI shows review previews and inactive approval decision controls, but it does not persist approval or rejection decisions
 - the MCP layer is currently a thin in-process adapter surface, not a production transport host
+- provider-facing runtime alignment is shared-contract based; provider-specific attachments still remain separate follow-up work
 
 ## Start Here
 
