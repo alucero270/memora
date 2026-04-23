@@ -19,6 +19,7 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
     private readonly ArtifactFactory _artifactFactory = new();
     private readonly ArtifactFileStore _fileStore = new();
     private readonly ContextBundleBuilder _contextBundleBuilder = new();
+    private readonly ContextPackageCache _contextPackageCache = new();
     private readonly PolicyGovernedWriteSafetyValidator _writeSafetyValidator = new();
 
     public FileSystemAgentInteractionService(string workspacesRootPath)
@@ -54,17 +55,20 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
             return new GetContextResponse(null, errors);
         }
 
-        var bundle = _contextBundleBuilder.Build(
-            new ContextBundleRequest(
-                request.ProjectId,
-                request.TaskDescription,
-                request.IncludeDraftArtifacts,
-                request.IncludeLayer3History,
-                request.FocusArtifactIds,
-                request.FocusTags,
-                request.MaxLayer2Artifacts,
-                request.MaxLayer3Artifacts),
-            artifacts);
+        var contextRequest = new ContextBundleRequest(
+            request.ProjectId,
+            request.TaskDescription,
+            request.IncludeDraftArtifacts,
+            request.IncludeLayer3History,
+            request.FocusArtifactIds,
+            request.FocusTags,
+            request.MaxLayer2Artifacts,
+            request.MaxLayer3Artifacts);
+        var cachedPackage = _contextPackageCache.GetOrBuild(
+            contextRequest,
+            artifacts,
+            _contextBundleBuilder.Build);
+        var bundle = cachedPackage.Bundle;
 
         return new GetContextResponse(MapBundle(request, bundle), []);
     }
