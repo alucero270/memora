@@ -252,8 +252,8 @@ External retrieval is never truth unless it is promoted and approved in Memora.
 
 ## Extension Points
 
-- semantic retrieval adapter behind a clear boundary
-- graph and relationship enhancements
+- graph and relationship enhancements that preserve deterministic retrieval
+- external advisory retrieval integration behind a clear boundary
 - controlled automation policies
 - runtime integrations such as Machina
 

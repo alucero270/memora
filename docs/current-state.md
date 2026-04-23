@@ -20,7 +20,9 @@ It is intentionally separate from roadmap and milestone planning docs.
 
 - deterministic context bundle models
 - deterministic ranking with stable ordering
-- explicit inclusion reasoning for selected artifacts
+- derived context package caching keyed by request shape and loaded artifact fingerprints
+- bounded typed relationship traversal for focus proximity
+- explicit inclusion reasoning for selected artifacts, including traversed relationship paths
 - layered bundle assembly in `Memora.Context`
 - context viewer UI route at `/context-viewer`
 
@@ -62,6 +64,7 @@ It is intentionally separate from roadmap and milestone planning docs.
 - API is a minimal HTTP surface, not a fully documented production service
 - MCP is currently an in-process adapter surface, not a complete hosted server transport
 - context assembly is deterministic and explainable, but remains non-semantic and non-vector in v1
+- cached context packages are derived convenience and never replace filesystem truth
 - rebuild diagnostics identify filesystem issues, but they do not auto-repair artifacts or indexes
 - controlled automation does not provide a general direct-write path and does not write canonical artifacts
 
@@ -94,6 +97,11 @@ It is intentionally separate from roadmap and milestone planning docs.
 - `src/Memora.Context/Ranking/DeterministicContextRankingEngine.cs`
 - `src/Memora.Context/Reasoning/ContextInclusionReasoner.cs`
 - `src/Memora.Context/Assembly/ContextBundleBuilder.cs`
+- `src/Memora.Context/Assembly/ContextPackageCache.cs`
+
+### Retrieval Evolution Docs
+
+- `docs/retrieval-evolution.md`
 
 ### API
 
