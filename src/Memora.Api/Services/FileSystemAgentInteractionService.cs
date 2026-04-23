@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Memora.Context.Assembly;
 using Memora.Context.Models;
 using Memora.Core.AgentInteraction;
@@ -399,7 +400,7 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
 
         foreach (var pair in content.TypeSpecificValues)
         {
-            frontmatter[pair.Key] = pair.Value;
+            frontmatter[pair.Key] = NormalizeRuntimeValue(pair.Value);
         }
 
         var sections = new Dictionary<string, string>(content.Sections, StringComparer.Ordinal);
@@ -423,6 +424,29 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
 
         return map;
     }
+
+    private static object? NormalizeRuntimeValue(object? value) =>
+        value switch
+        {
+            JsonElement element => NormalizeJsonElement(element),
+            _ => value
+        };
+
+    private static object? NormalizeJsonElement(JsonElement element) =>
+        element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString(),
+            JsonValueKind.Number when element.TryGetInt64(out var intValue) => intValue,
+            JsonValueKind.Number when element.TryGetDecimal(out var decimalValue) => decimalValue,
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Array => element.EnumerateArray().Select(NormalizeJsonElement).ToList(),
+            JsonValueKind.Object => element.EnumerateObject().ToDictionary(
+                property => property.Name,
+                property => NormalizeJsonElement(property.Value),
+                StringComparer.Ordinal),
+            _ => null
+        };
 
     private static IReadOnlyList<AgentInteractionError> MapErrors(ArtifactValidationResult validation) =>
         validation.Issues
