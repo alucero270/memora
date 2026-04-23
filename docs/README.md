@@ -11,6 +11,7 @@ Docs must describe current implementation honestly and keep roadmap work clearly
 - `current-state.md` for implemented behavior in the current checkout
 - `architecture.md` for module boundaries and system rules
 - `integration-strategy.md` for provider-facing MCP and OpenAPI guidance
+- `retrieval-evolution.md` for shipped retrieval behavior, current Milestone 7 gains, and deferred retrieval boundaries
 - `operator-workflows.md` for current local operator review and recovery workflows
 - `controlled-automation.md` for bounded Milestone 6 automation policy, trigger, prototype, and safety rules
 - `understanding-outputs.md` for the current human-readable output strategy
