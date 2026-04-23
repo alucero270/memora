@@ -124,6 +124,10 @@ Provider-specific setup notes should live in dedicated docs and should:
 - explain configuration, shell usage, and limits honestly
 - avoid claiming custom provider adapters unless they actually exist
 
+The current Machina-facing guidance is documented separately in
+`docs/machina-interaction-model.md` so the runtime interaction story stays
+explicit without moving runtime responsibilities into Memora itself.
+
 This separation keeps provider guidance practical without letting it redefine
 Memora's architecture.
 
