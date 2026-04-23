@@ -22,4 +22,5 @@ Exposes Memora through MCP as the primary provider-facing protocol.
 - it exposes context assembly, proposal, update, and outcome operations
 - tool and resource definitions carry explicit request, response, and error contract metadata
 - project resource reads validate the published URI template before forwarding to shared services
+- compatibility validation keeps the MCP surface aligned with the companion OpenAPI path through the shared runtime contract
 - transport hosting and broader MCP ergonomics are intentionally still thin
