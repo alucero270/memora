@@ -22,6 +22,11 @@ Provides the local operator interface for Memora.
 - uses a writable local copy of `samples/workspaces` unless `MemoraUi__WorkspacesRoot` or `MEMORA_WORKSPACES_ROOT` is set
 - supports project selection, artifact browsing, draft editing, approval review previews, queue navigation, decision-readiness context, a context viewer route, and an understanding-output route
 
+## Design Guidance
+- future UI work should follow the shared component-system guidance in `../../docs/ui-design-system.md`
+- reusable controls, panels, navigation, tables, badges, and workflow sections should be treated as composable UI parts rather than one-off page styling
+- responsive behavior should be designed into reusable components before they are used across routes
+
 ## Honest Scope
 - draft edits write new draft revisions to the selected workspace root
 - approval review surfaces are wired to current core diff and queue behavior
