@@ -83,6 +83,34 @@ public sealed class ContextInclusionReasonerTests
     }
 
     [Fact]
+    public void ExplainInclusion_AddsTraversalReasonForBoundedRelationshipPaths()
+    {
+        var request = new ContextBundleRequest("memora", "Need context.", focusArtifactIds: ["ADR-003"]);
+        var artifact = new ContextBundleArtifact(
+            CreateDecisionArtifact("ADR-001", ArtifactStatus.Approved, new ArtifactLinks(["ADR-002"], [], [], [])),
+            ContextArtifactOrigin.CanonicalApproved);
+        var rankedArtifact = CreateRankedArtifact(
+            artifact,
+            milestoneRelevance: 0,
+            directMatchStrength: 0,
+            relationshipPaths:
+            [
+                new ContextRelationshipTraversalPath(
+                    "ADR-003",
+                    ["ADR-001", "ADR-002", "ADR-003"],
+                    [
+                        new ContextRelationshipTraversalSegment("ADR-001", ArtifactRelationshipKind.DependsOn, "ADR-002", ContextRelationshipTraversalDirection.Outgoing),
+                        new ContextRelationshipTraversalSegment("ADR-002", ArtifactRelationshipKind.DependsOn, "ADR-003", ContextRelationshipTraversalDirection.Outgoing)
+                    ])
+            ]);
+
+        var reasons = _reasoner.ExplainInclusion(request, ContextLayerKind.Layer2, rankedArtifact);
+
+        var reason = Assert.Single(reasons, reason => reason.Code == "traversed-focus-artifact");
+        Assert.Equal(["ADR-002", "ADR-003"], reason.RelatedArtifactIds);
+    }
+
+    [Fact]
     public void ExplainInclusion_UsesStableReasonOrdering()
     {
         var request = new ContextBundleRequest("memora", "Prepare milestone 3 context.", focusArtifactIds: ["ADR-001"]);
@@ -101,16 +129,18 @@ public sealed class ContextInclusionReasonerTests
     private static RankedContextArtifact CreateRankedArtifact(
         ContextBundleArtifact artifact,
         int milestoneRelevance,
-        int directMatchStrength) =>
+        int directMatchStrength,
+        IReadOnlyList<ContextRelationshipTraversalPath>? relationshipPaths = null) =>
         new(
             artifact,
             new ContextRankingBreakdown(
                 TypePriority: 7,
                 CanonicalStatusPriority: artifact.Origin == ContextArtifactOrigin.CanonicalApproved ? 3 : 2,
                 MilestoneRelevance: milestoneRelevance,
-                RelationshipProximity: 0,
+                RelationshipProximity: relationshipPaths?.Count ?? 0,
                 RecencyPriority: 1,
-                DirectMatchStrength: directMatchStrength));
+                DirectMatchStrength: directMatchStrength),
+            relationshipPaths);
 
     private static PlanArtifact CreateActivePlanArtifact(ArtifactStatus status) =>
         new(

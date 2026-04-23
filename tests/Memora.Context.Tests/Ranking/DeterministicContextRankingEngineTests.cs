@@ -52,6 +52,34 @@ public sealed class DeterministicContextRankingEngineTests
     }
 
     [Fact]
+    public void Rank_TraversesBoundedTypedRelationshipPathsToFocusArtifacts()
+    {
+        var request = new ContextBundleRequest("memora", "Need supporting context.", focusArtifactIds: ["ADR-003"]);
+        var indirectlyRelated = CreateCandidate(
+            "ADR-001",
+            ArtifactStatus.Approved,
+            ContextArtifactOrigin.CanonicalApproved,
+            links: new ArtifactLinks(["ADR-002"], [], [], []));
+        var intermediate = CreateCandidate(
+            "ADR-002",
+            ArtifactStatus.Approved,
+            ContextArtifactOrigin.CanonicalApproved,
+            links: new ArtifactLinks(["ADR-003"], [], [], []));
+        var unrelated = CreateCandidate("ADR-004", ArtifactStatus.Approved, ContextArtifactOrigin.CanonicalApproved);
+
+        var ranked = _engine.Rank(request, [unrelated, indirectlyRelated, intermediate]);
+
+        Assert.True(ranked.Single(result => result.Artifact.Artifact.Id == "ADR-001").Breakdown.RelationshipProximity > 0);
+        Assert.Contains(
+            ranked.Single(result => result.Artifact.Artifact.Id == "ADR-001").RelationshipPaths,
+            path =>
+                path.FocusArtifactId == "ADR-003" &&
+                path.Depth == 2 &&
+                path.Segments.Select(segment => segment.RelationshipKind).SequenceEqual([ArtifactRelationshipKind.DependsOn, ArtifactRelationshipKind.DependsOn]));
+        Assert.Equal("ADR-004", ranked.Last().Artifact.Artifact.Id);
+    }
+
+    [Fact]
     public void Rank_UsesRecencyBeforeDirectMatchForOtherwiseEqualArtifacts()
     {
         var request = new ContextBundleRequest("memora", "Need context assembly details.");

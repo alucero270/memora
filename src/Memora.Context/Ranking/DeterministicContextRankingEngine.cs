@@ -30,6 +30,7 @@ public sealed class DeterministicContextRankingEngine
         ArgumentNullException.ThrowIfNull(candidates);
 
         var profile = BuildRequestProfile(request);
+        var relationshipTraversal = ContextRelationshipTraversal.Create(candidates, profile.FocusArtifactIds);
 
         var recencyRanks = candidates
             .Select(candidate => candidate.Artifact.UpdatedAtUtc)
@@ -40,15 +41,21 @@ public sealed class DeterministicContextRankingEngine
 
         return candidates
             .Select(CreateCandidateProfile)
-            .Select(candidateProfile => new RankedContextArtifact(
-                candidateProfile.Candidate,
-                new ContextRankingBreakdown(
-                    TypePriority: GetTypePriority(candidateProfile.Candidate.Artifact.Type),
-                    CanonicalStatusPriority: GetCanonicalStatusPriority(candidateProfile.Candidate),
-                    MilestoneRelevance: CalculateMilestoneRelevance(candidateProfile, profile.MilestoneTokens),
-                    RelationshipProximity: CalculateRelationshipProximity(candidateProfile.Candidate.Artifact, profile.FocusArtifactIds),
-                    RecencyPriority: recencyRanks[candidateProfile.Candidate.Artifact.UpdatedAtUtc],
-                    DirectMatchStrength: CalculateDirectMatchStrength(candidateProfile, profile.RequestTokens))))
+            .Select(candidateProfile =>
+            {
+                var relationshipPaths = relationshipTraversal.GetPaths(candidateProfile.Candidate.Artifact.Id);
+
+                return new RankedContextArtifact(
+                    candidateProfile.Candidate,
+                    new ContextRankingBreakdown(
+                        TypePriority: GetTypePriority(candidateProfile.Candidate.Artifact.Type),
+                        CanonicalStatusPriority: GetCanonicalStatusPriority(candidateProfile.Candidate),
+                        MilestoneRelevance: CalculateMilestoneRelevance(candidateProfile, profile.MilestoneTokens),
+                        RelationshipProximity: CalculateRelationshipProximity(candidateProfile.Candidate.Artifact, profile.FocusArtifactIds, relationshipPaths),
+                        RecencyPriority: recencyRanks[candidateProfile.Candidate.Artifact.UpdatedAtUtc],
+                        DirectMatchStrength: CalculateDirectMatchStrength(candidateProfile, profile.RequestTokens)),
+                    relationshipPaths);
+            })
             .OrderByDescending(result => result.Breakdown.TypePriority)
             .ThenByDescending(result => result.Breakdown.CanonicalStatusPriority)
             .ThenByDescending(result => result.Breakdown.MilestoneRelevance)
@@ -84,7 +91,10 @@ public sealed class DeterministicContextRankingEngine
         return requestMilestones.Count(candidateProfile.MilestoneTokens.Contains);
     }
 
-    private static int CalculateRelationshipProximity(ArtifactDocument artifact, IReadOnlySet<string> focusArtifactIds)
+    private static int CalculateRelationshipProximity(
+        ArtifactDocument artifact,
+        IReadOnlySet<string> focusArtifactIds,
+        IReadOnlyList<ContextRelationshipTraversalPath> relationshipPaths)
     {
         if (focusArtifactIds.Count == 0)
         {
@@ -96,8 +106,7 @@ public sealed class DeterministicContextRankingEngine
             return focusArtifactIds.Count + 1;
         }
 
-        return artifact.Links.Relationships.Count(relationship =>
-            focusArtifactIds.Contains(relationship.TargetArtifactId));
+        return relationshipPaths.Sum(path => path.Depth == 1 ? 2 : 1);
     }
 
     private static int CalculateDirectMatchStrength(
@@ -188,4 +197,142 @@ public sealed class DeterministicContextRankingEngine
         ContextBundleArtifact Candidate,
         IReadOnlySet<string> MilestoneTokens,
         IReadOnlyDictionary<string, int> TextWeights);
+
+    private sealed class ContextRelationshipTraversal
+    {
+        private const int MaxDepth = 2;
+
+        private readonly IReadOnlyDictionary<string, IReadOnlyList<TraversalStep>> _stepsByArtifactId;
+        private readonly IReadOnlySet<string> _focusArtifactIds;
+
+        private ContextRelationshipTraversal(
+            IReadOnlyDictionary<string, IReadOnlyList<TraversalStep>> stepsByArtifactId,
+            IReadOnlySet<string> focusArtifactIds)
+        {
+            _stepsByArtifactId = stepsByArtifactId;
+            _focusArtifactIds = focusArtifactIds;
+        }
+
+        public static ContextRelationshipTraversal Create(
+            IReadOnlyList<ContextBundleArtifact> candidates,
+            IReadOnlySet<string> focusArtifactIds)
+        {
+            var candidateIds = candidates
+                .Select(candidate => candidate.Artifact.Id)
+                .ToHashSet(StringComparer.Ordinal);
+            var steps = new Dictionary<string, List<TraversalStep>>(StringComparer.Ordinal);
+
+            foreach (var candidate in candidates.OrderBy(candidate => candidate.Artifact.Id, StringComparer.Ordinal))
+            {
+                foreach (var relationship in candidate.Artifact.Links.Relationships
+                             .OrderBy(relationship => relationship.Kind)
+                             .ThenBy(relationship => relationship.TargetArtifactId, StringComparer.Ordinal))
+                {
+                    AddStep(
+                        steps,
+                        candidate.Artifact.Id,
+                        relationship.TargetArtifactId,
+                        new ContextRelationshipTraversalSegment(
+                            candidate.Artifact.Id,
+                            relationship.Kind,
+                            relationship.TargetArtifactId,
+                            ContextRelationshipTraversalDirection.Outgoing));
+
+                    if (candidateIds.Contains(relationship.TargetArtifactId))
+                    {
+                        AddStep(
+                            steps,
+                            relationship.TargetArtifactId,
+                            candidate.Artifact.Id,
+                            new ContextRelationshipTraversalSegment(
+                                candidate.Artifact.Id,
+                                relationship.Kind,
+                                relationship.TargetArtifactId,
+                                ContextRelationshipTraversalDirection.Incoming));
+                    }
+                }
+            }
+
+            return new ContextRelationshipTraversal(
+                steps.ToDictionary(
+                    pair => pair.Key,
+                    pair => (IReadOnlyList<TraversalStep>)pair.Value
+                        .OrderBy(step => step.Segment.Direction)
+                        .ThenBy(step => step.Segment.RelationshipKind)
+                        .ThenBy(step => step.NextArtifactId, StringComparer.Ordinal)
+                        .ToArray(),
+                    StringComparer.Ordinal),
+                focusArtifactIds);
+        }
+
+        public IReadOnlyList<ContextRelationshipTraversalPath> GetPaths(string artifactId)
+        {
+            if (_focusArtifactIds.Count == 0 || _focusArtifactIds.Contains(artifactId))
+            {
+                return [];
+            }
+
+            var paths = new List<ContextRelationshipTraversalPath>();
+            var pending = new Queue<TraversalState>();
+            pending.Enqueue(new TraversalState([artifactId], []));
+
+            while (pending.Count > 0)
+            {
+                var state = pending.Dequeue();
+                if (state.Segments.Count == MaxDepth ||
+                    !_stepsByArtifactId.TryGetValue(state.ArtifactIds[^1], out var steps))
+                {
+                    continue;
+                }
+
+                foreach (var step in steps)
+                {
+                    if (state.ArtifactIds.Contains(step.NextArtifactId, StringComparer.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    var artifactIds = state.ArtifactIds.Concat([step.NextArtifactId]).ToArray();
+                    var segments = state.Segments.Concat([step.Segment]).ToArray();
+
+                    if (_focusArtifactIds.Contains(step.NextArtifactId))
+                    {
+                        paths.Add(new ContextRelationshipTraversalPath(step.NextArtifactId, artifactIds, segments));
+                        continue;
+                    }
+
+                    pending.Enqueue(new TraversalState(artifactIds, segments));
+                }
+            }
+
+            return paths
+                .OrderBy(path => path.Depth)
+                .ThenBy(path => path.FocusArtifactId, StringComparer.Ordinal)
+                .ThenBy(path => string.Join("|", path.ArtifactIds), StringComparer.Ordinal)
+                .ToArray();
+        }
+
+        private static void AddStep(
+            IDictionary<string, List<TraversalStep>> steps,
+            string sourceArtifactId,
+            string nextArtifactId,
+            ContextRelationshipTraversalSegment segment)
+        {
+            if (!steps.TryGetValue(sourceArtifactId, out var sourceSteps))
+            {
+                sourceSteps = [];
+                steps[sourceArtifactId] = sourceSteps;
+            }
+
+            sourceSteps.Add(new TraversalStep(nextArtifactId, segment));
+        }
+
+        private sealed record TraversalStep(
+            string NextArtifactId,
+            ContextRelationshipTraversalSegment Segment);
+
+        private sealed record TraversalState(
+            IReadOnlyList<string> ArtifactIds,
+            IReadOnlyList<ContextRelationshipTraversalSegment> Segments);
+    }
 }

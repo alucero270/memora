@@ -6,6 +6,7 @@ Builds deterministic context packages for agents and workflows.
 ## Responsibilities
 - layered retrieval
 - deterministic ranking
+- bounded typed relationship traversal for focus proximity
 - context assembly
 
 ## Does NOT contain
@@ -24,5 +25,6 @@ Builds deterministic context packages for agents and workflows.
 
 - deterministic context assembly is implemented
 - repeated package assembly can reuse cached derived bundles when loaded artifact state is unchanged
+- relationship proximity can traverse explicit stored relationship paths up to a bounded depth
 - ranking remains explainable and non-semantic
 - this project can be used by API, MCP, and UI without duplicating selection logic
