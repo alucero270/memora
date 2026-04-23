@@ -17,12 +17,12 @@ agent proposal boundaries.
 
 ## Source Reference
 
-- Atomic Design, Brad Frost
-- Local reference copy used by the project owner:
-  `C:\Users\Alex Lucero\Nextcloud\Documents\software\ai\Atomic Design.md`
+- Atomic Design, Brad Frost, used as conceptual source material
+- `Atomic Design.md`, the project-specific distillation maintained in this
+  repository
 
-Do not vendor the source text into this repository. Keep Memora docs focused on
-the project-specific practices we want to preserve.
+Do not vendor source text into this repository. Keep Memora docs focused on the
+project-specific practices we want to preserve.
 
 ## Component Hierarchy
 
