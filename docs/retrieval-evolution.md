@@ -80,9 +80,13 @@ preserve what the system knows, not what the system guesses.
 Future retrieval exploration must stay outside core v1 unless it preserves the
 same governance model.
 
+The optional retrieval extension contract is a boundary for future candidate
+discovery providers. It is not active core behavior.
+
 That means any later advisory discovery layer would need to remain:
 
 - non-canonical
+- disabled by default
 - clearly separate from deterministic core retrieval
 - unable to bypass lifecycle or approval rules
 - validated back through approved artifacts and normal context assembly before

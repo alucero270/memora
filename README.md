@@ -19,7 +19,7 @@ This checkout includes working slices across:
 - validation diagnostics that surface code and path context for operators and integrations
 - filesystem parsing and persistence for canonical, draft, and summary artifacts
 - SQLite rebuild-from-files indexing with filesystem-first rebuild diagnostics
-- deterministic context ranking, inclusion reasoning, and layered context assembly
+- deterministic context ranking, cached context packages, bounded relationship traversal, inclusion reasoning, and layered context assembly
 - a provider-agnostic external runtime contract reused by MCP and OpenAPI
 - a minimal local HTTP API for project lookup, context assembly, proposals, updates, and outcomes
 - a thin MCP surface over the shared agent interaction contract
@@ -33,7 +33,7 @@ Important limits still apply:
 
 - canonical truth remains filesystem-first and approval-governed
 - controlled automation is limited to explicit policy checks and non-canonical session-summary writes
-- no semantic or vector retrieval exists in core v1
+- no semantic or vector retrieval executes in core v1; optional future extension contracts are advisory and disabled by default
 - the UI shows review previews and inactive approval decision controls, but it does not persist approval or rejection decisions
 - the MCP layer is currently a thin in-process adapter surface, not a production transport host
 - provider-facing runtime alignment is shared-contract based; provider-specific attachments still remain separate follow-up work
@@ -45,9 +45,10 @@ If you are orienting yourself in the repo, this order works well:
 1. [docs/current-state.md](docs/current-state.md)
 2. [docs/architecture.md](docs/architecture.md)
 3. [docs/milestones.md](docs/milestones.md)
-4. [docs/operator-workflows.md](docs/operator-workflows.md)
-5. [src/README.md](src/README.md)
-6. [tests/README.md](tests/README.md)
+4. [docs/retrieval-evolution.md](docs/retrieval-evolution.md)
+5. [docs/operator-workflows.md](docs/operator-workflows.md)
+6. [src/README.md](src/README.md)
+7. [tests/README.md](tests/README.md)
 
 ## Local Run
 
