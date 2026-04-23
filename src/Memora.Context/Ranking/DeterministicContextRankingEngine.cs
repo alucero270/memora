@@ -29,10 +29,7 @@ public sealed class DeterministicContextRankingEngine
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(candidates);
 
-        var requestTokens = BuildRequestTokens(request);
-        var milestoneTokens = ExtractMilestoneTokens(request.TaskDescription)
-            .Union(request.FocusTags.SelectMany(ExtractMilestoneTokens), StringComparer.Ordinal)
-            .ToArray();
+        var profile = BuildRequestProfile(request);
 
         var recencyRanks = candidates
             .Select(candidate => candidate.Artifact.UpdatedAtUtc)
@@ -42,15 +39,16 @@ public sealed class DeterministicContextRankingEngine
             .ToDictionary(pair => pair.updatedAt, pair => pair.rank);
 
         return candidates
-            .Select(candidate => new RankedContextArtifact(
-                candidate,
+            .Select(CreateCandidateProfile)
+            .Select(candidateProfile => new RankedContextArtifact(
+                candidateProfile.Candidate,
                 new ContextRankingBreakdown(
-                    TypePriority: GetTypePriority(candidate.Artifact.Type),
-                    CanonicalStatusPriority: GetCanonicalStatusPriority(candidate),
-                    MilestoneRelevance: CalculateMilestoneRelevance(candidate.Artifact, milestoneTokens),
-                    RelationshipProximity: CalculateRelationshipProximity(candidate.Artifact, request.FocusArtifactIds),
-                    RecencyPriority: recencyRanks[candidate.Artifact.UpdatedAtUtc],
-                    DirectMatchStrength: CalculateDirectMatchStrength(candidate.Artifact, requestTokens))))
+                    TypePriority: GetTypePriority(candidateProfile.Candidate.Artifact.Type),
+                    CanonicalStatusPriority: GetCanonicalStatusPriority(candidateProfile.Candidate),
+                    MilestoneRelevance: CalculateMilestoneRelevance(candidateProfile, profile.MilestoneTokens),
+                    RelationshipProximity: CalculateRelationshipProximity(candidateProfile.Candidate.Artifact, profile.FocusArtifactIds),
+                    RecencyPriority: recencyRanks[candidateProfile.Candidate.Artifact.UpdatedAtUtc],
+                    DirectMatchStrength: CalculateDirectMatchStrength(candidateProfile, profile.RequestTokens))))
             .OrderByDescending(result => result.Breakdown.TypePriority)
             .ThenByDescending(result => result.Breakdown.CanonicalStatusPriority)
             .ThenByDescending(result => result.Breakdown.MilestoneRelevance)
@@ -74,49 +72,57 @@ public sealed class DeterministicContextRankingEngine
             _ => 0
         };
 
-    private static int CalculateMilestoneRelevance(ArtifactDocument artifact, IReadOnlyList<string> requestMilestones)
+    private static int CalculateMilestoneRelevance(
+        ContextRankingCandidateProfile candidateProfile,
+        IReadOnlySet<string> requestMilestones)
     {
         if (requestMilestones.Count == 0)
         {
             return 0;
         }
 
-        var artifactMilestones = ExtractMilestoneTokens(FlattenArtifactText(artifact)).ToHashSet(StringComparer.Ordinal);
-        return requestMilestones.Count(requestMilestone => artifactMilestones.Contains(requestMilestone));
+        return requestMilestones.Count(candidateProfile.MilestoneTokens.Contains);
     }
 
-    private static int CalculateRelationshipProximity(ArtifactDocument artifact, IReadOnlyList<string> focusArtifactIds)
+    private static int CalculateRelationshipProximity(ArtifactDocument artifact, IReadOnlySet<string> focusArtifactIds)
     {
         if (focusArtifactIds.Count == 0)
         {
             return 0;
         }
 
-        if (focusArtifactIds.Contains(artifact.Id, StringComparer.Ordinal))
+        if (focusArtifactIds.Contains(artifact.Id))
         {
             return focusArtifactIds.Count + 1;
         }
 
         return artifact.Links.Relationships.Count(relationship =>
-            focusArtifactIds.Contains(relationship.TargetArtifactId, StringComparer.Ordinal));
+            focusArtifactIds.Contains(relationship.TargetArtifactId));
     }
 
-    private static int CalculateDirectMatchStrength(ArtifactDocument artifact, IReadOnlyDictionary<string, int> requestTokens)
+    private static int CalculateDirectMatchStrength(
+        ContextRankingCandidateProfile candidateProfile,
+        IReadOnlyDictionary<string, int> requestTokens)
     {
         if (requestTokens.Count == 0)
         {
             return 0;
         }
 
-        var artifactTextWeights = new Dictionary<string, int>(StringComparer.Ordinal);
-        AddTokens(artifactTextWeights, Tokenize(artifact.Title), 6);
-        AddTokens(artifactTextWeights, artifact.Tags.SelectMany(Tokenize), 5);
-        AddTokens(artifactTextWeights, artifact.Sections.Keys.SelectMany(Tokenize), 3);
-        AddTokens(artifactTextWeights, artifact.Sections.Values.SelectMany(Tokenize), 2);
-        AddTokens(artifactTextWeights, Tokenize(artifact.Body), 1);
-
         return requestTokens.Sum(pair =>
-            pair.Value * artifactTextWeights.GetValueOrDefault(pair.Key, 0));
+            pair.Value * candidateProfile.TextWeights.GetValueOrDefault(pair.Key, 0));
+    }
+
+    private static ContextRankingRequestProfile BuildRequestProfile(ContextBundleRequest request)
+    {
+        var milestoneTokens = ExtractMilestoneTokens(request.TaskDescription)
+            .Union(request.FocusTags.SelectMany(ExtractMilestoneTokens), StringComparer.Ordinal)
+            .ToHashSet(StringComparer.Ordinal);
+
+        return new ContextRankingRequestProfile(
+            BuildRequestTokens(request),
+            milestoneTokens,
+            request.FocusArtifactIds.ToHashSet(StringComparer.Ordinal));
     }
 
     private static IReadOnlyDictionary<string, int> BuildRequestTokens(ContextBundleRequest request)
@@ -126,6 +132,21 @@ public sealed class DeterministicContextRankingEngine
         AddTokens(tokens, request.FocusTags.SelectMany(Tokenize), 4);
         AddTokens(tokens, request.FocusArtifactIds.SelectMany(Tokenize), 5);
         return tokens;
+    }
+
+    private static ContextRankingCandidateProfile CreateCandidateProfile(ContextBundleArtifact candidate)
+    {
+        var artifactTextWeights = new Dictionary<string, int>(StringComparer.Ordinal);
+        AddTokens(artifactTextWeights, Tokenize(candidate.Artifact.Title), 6);
+        AddTokens(artifactTextWeights, candidate.Artifact.Tags.SelectMany(Tokenize), 5);
+        AddTokens(artifactTextWeights, candidate.Artifact.Sections.Keys.SelectMany(Tokenize), 3);
+        AddTokens(artifactTextWeights, candidate.Artifact.Sections.Values.SelectMany(Tokenize), 2);
+        AddTokens(artifactTextWeights, Tokenize(candidate.Artifact.Body), 1);
+
+        return new ContextRankingCandidateProfile(
+            candidate,
+            ExtractMilestoneTokens(FlattenArtifactText(candidate.Artifact)).ToHashSet(StringComparer.Ordinal),
+            artifactTextWeights);
     }
 
     private static void AddTokens(IDictionary<string, int> target, IEnumerable<string> tokens, int weight)
@@ -157,4 +178,14 @@ public sealed class DeterministicContextRankingEngine
         var tagText = string.Join(" ", artifact.Tags);
         return string.Join(Environment.NewLine, artifact.Title, tagText, sectionText, artifact.Body);
     }
+
+    private sealed record ContextRankingRequestProfile(
+        IReadOnlyDictionary<string, int> RequestTokens,
+        IReadOnlySet<string> MilestoneTokens,
+        IReadOnlySet<string> FocusArtifactIds);
+
+    private sealed record ContextRankingCandidateProfile(
+        ContextBundleArtifact Candidate,
+        IReadOnlySet<string> MilestoneTokens,
+        IReadOnlyDictionary<string, int> TextWeights);
 }
