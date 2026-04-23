@@ -87,6 +87,23 @@ public sealed class AgentInteractionContractTests
         Assert.Equal("context.validation", failure.Errors[0].Code);
     }
 
+    [Fact]
+    public void ExternalRuntimeContract_PublishesProviderAgnosticProposalOnlyOperations()
+    {
+        var contract = ExternalRuntimeContract.Current;
+
+        Assert.Equal("memora.runtime.v1", contract.Version);
+        Assert.Equal(ExternalRuntimeContractSurface.Mcp, contract.PrimarySurface);
+        Assert.Equal(ExternalRuntimeContractSurface.OpenApi, contract.CompanionSurface);
+        Assert.Contains(contract.Operations, operation => operation.Name == "get_context");
+        Assert.Contains(contract.Operations, operation => operation.Name == "propose_artifact");
+        Assert.Contains(contract.Operations, operation => operation.Name == "propose_update");
+        Assert.Contains(contract.Operations, operation => operation.Name == "record_outcome");
+        Assert.DoesNotContain(contract.Operations, operation => operation.WritesCanonicalTruth);
+        Assert.Contains(contract.Constraints, constraint => constraint.Code == "writes.proposal_only");
+        Assert.Contains(contract.Constraints, constraint => constraint.Code == "boundary.no_runtime_host");
+    }
+
     private static ArtifactProposalContent CreateContent() =>
         new(
             "Context decision",

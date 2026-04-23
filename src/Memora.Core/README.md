@@ -25,4 +25,4 @@ Defines Memora's core domain model and rules.
 - `Automation/`: bounded low-risk artifact classes, controlled automation policies, safe triggers, and write safety validation
 - `Editing/`: draft-edit behavior
 - `Revisions/`: field-level revision diffs with deterministic areas and display labels
-- `AgentInteraction/`: shared contracts used by API and MCP
+- `AgentInteraction/`: shared contracts used by API and MCP, including the provider-agnostic external runtime boundary
