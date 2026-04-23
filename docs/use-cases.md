@@ -46,6 +46,30 @@ The demo should make these distinctions visible:
 - session summaries support continuity but do not become canonical truth by
   themselves
 
+## Product Packaging Without Losing The Core
+
+Memora should also preserve product strategy decisions when those decisions are
+important enough to shape roadmap boundaries.
+
+The product-packaging workflow follows the same pattern:
+
+1. identify what the MVP must include to remain trustworthy
+2. decide which capabilities belong to the free local-first core
+3. separate paid convenience and team features from canonical truth behavior
+4. preserve deferred pricing or packaging questions for later review
+
+### Demo Project Example
+
+The sample workspace models this with:
+
+- `ADR-003`: the local-first MVP is free
+- `CNS-001`: core truth and governance stay in the free tier
+- `QST-002`: which paid capabilities should come first remains deferred
+
+This makes the demo more realistic because Memora is not only storing technical
+constraints. It is also preserving the product reasoning that prevents future
+drift in packaging and scope.
+
 ### Why This Matters
 
 Without this workflow, a team often loses important context:

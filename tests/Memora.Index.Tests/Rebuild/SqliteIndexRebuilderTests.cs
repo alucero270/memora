@@ -177,11 +177,11 @@ public sealed class SqliteIndexRebuilderTests : IDisposable
         Assert.True(result.Success);
         Assert.Empty(result.Diagnostics);
         Assert.Equal(1, result.ProjectCount);
-        Assert.Equal(6, result.ArtifactCount);
-        Assert.Equal(6, result.RevisionCount);
-        Assert.Equal(7, result.RelationshipCount);
+        Assert.Equal(9, result.ArtifactCount);
+        Assert.Equal(9, result.RevisionCount);
+        Assert.Equal(15, result.RelationshipCount);
         Assert.Equal("demo-project", ExecuteScalar<string>(connection, "SELECT project_id FROM projects LIMIT 1;"));
-        Assert.Equal(4L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions WHERE is_canonical = 1;"));
+        Assert.Equal(7L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions WHERE is_canonical = 1;"));
         Assert.Equal(1L, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM artifact_revisions WHERE is_canonical = 0 AND artifact_id = 'PLN-001';"));
     }
 
