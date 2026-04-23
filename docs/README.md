@@ -15,6 +15,7 @@ Docs must describe current implementation honestly and keep roadmap work clearly
 - `controlled-automation.md` for bounded Milestone 6 automation policy, trigger, prototype, and safety rules
 - `understanding-outputs.md` for the current human-readable output strategy
 - `ui-design-system.md` for frontend Atomic Design guidance and reusable UI expectations
+- `Atomic Design.md` for the Memora-specific distillation behind the UI guidance
 - `openwebui-openapi.md` for the current Open WebUI companion API path
 - `claude-integration.md` for the current Claude-oriented setup guidance
 - `codex-integration.md` for the current Codex-oriented setup guidance
