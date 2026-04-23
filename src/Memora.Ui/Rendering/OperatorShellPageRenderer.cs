@@ -16,7 +16,7 @@ internal static class OperatorShellPageRenderer
         body.AppendLine("<section class=\"hero\">");
         body.AppendLine("<p class=\"eyebrow\">Memora Human Loop</p>");
         body.AppendLine("<h1>Minimal local operator shell</h1>");
-        body.AppendLine("<p class=\"lede\">Browse workspace artifacts, inspect draft revisions, and review the current approval queue without claiming more workflow completeness than Milestone 2 actually provides.</p>");
+        body.AppendLine("<p class=\"lede\">Browse local workspace artifacts, inspect draft revisions, review the current approval queue, and jump into deterministic context views without changing canonical project truth.</p>");
         body.AppendLine("</section>");
 
         body.AppendLine("<section class=\"panel\">");
@@ -51,15 +51,16 @@ internal static class OperatorShellPageRenderer
         var body = new StringBuilder();
         body.AppendLine("<section class=\"hero compact\">");
         body.AppendLine($"<p class=\"eyebrow\">Project</p><h1>{Encode(snapshot.Workspace.Metadata.Name)}</h1>");
-        body.AppendLine($"<p class=\"lede\">Project id <code>{Encode(snapshot.Workspace.ProjectId)}</code> from <code>{Encode(snapshot.Workspace.RootPath)}</code>.</p>");
+        body.AppendLine($"<p class=\"lede\">Workspace dashboard for <code>{Encode(snapshot.Workspace.ProjectId)}</code>. Use the navigation above to move between artifacts, review queue, context, and understanding views.</p>");
         body.AppendLine("</section>");
 
         body.AppendLine("<section class=\"two-up\">");
         body.AppendLine("<article class=\"panel\">");
         body.AppendLine("<div class=\"panel-header\">");
-        body.AppendLine("<h2>Artifact Browser</h2>");
-        body.AppendLine("<p class=\"muted\">Every artifact file discovered from canonical, drafts, and summaries.</p>");
+        body.AppendLine("<h2>Artifacts</h2>");
+        body.AppendLine("<p class=\"muted\">Open file-backed records discovered from canonical, draft, and summary storage. Draft and proposed artifacts appear first.</p>");
         body.AppendLine("</div>");
+        body.AppendLine("<div class=\"table-scroll\">");
         body.AppendLine("<table><thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Revision</th><th>File</th></tr></thead><tbody>");
 
         foreach (var record in snapshot.Artifacts)
@@ -75,6 +76,7 @@ internal static class OperatorShellPageRenderer
         }
 
         body.AppendLine("</tbody></table>");
+        body.AppendLine("</div>");
         body.AppendLine("</article>");
 
         body.AppendLine("<article class=\"panel\">");
@@ -95,7 +97,7 @@ internal static class OperatorShellPageRenderer
                 var reviewLink = BuildReviewLink(snapshot.Workspace.ProjectId, item.Record.RelativePath);
                 body.AppendLine("<li>");
                 body.AppendLine($"<a href=\"{reviewLink}\">{Encode(item.QueueItem.Title)}</a> ");
-                body.AppendLine($"<span class=\"muted\">{Encode(item.QueueItem.ArtifactType.ToSchemaValue())} · rev {Encode(item.QueueItem.Revision.ToString(CultureInfo.InvariantCulture))}</span>");
+                body.AppendLine($"<span class=\"muted\">{Encode(item.QueueItem.ArtifactType.ToSchemaValue())} &middot; rev {Encode(item.QueueItem.Revision.ToString(CultureInfo.InvariantCulture))}</span>");
                 body.AppendLine("</li>");
             }
 
@@ -120,8 +122,13 @@ internal static class OperatorShellPageRenderer
         var artifact = view.SelectedArtifact.Artifact;
 
         body.AppendLine("<section class=\"hero compact\">");
-        body.AppendLine($"<p class=\"eyebrow\">Artifact</p><h1>{Encode(artifact.Title)}</h1>");
-        body.AppendLine($"<p class=\"lede\">{Encode(artifact.Type.ToSchemaValue())} · {Encode(artifact.Status.ToSchemaValue())} · revision {Encode(artifact.Revision.ToString(CultureInfo.InvariantCulture))}</p>");
+        body.AppendLine($"<p class=\"eyebrow\">Artifact Record</p><h1>{Encode(artifact.Title)}</h1>");
+        body.AppendLine($"<p class=\"lede\">{Encode(artifact.Type.ToSchemaValue())} &middot; {Encode(artifact.Status.ToSchemaValue())} &middot; revision {Encode(artifact.Revision.ToString(CultureInfo.InvariantCulture))}</p>");
+        body.AppendLine($"<p class=\"lede context-note\">Filesystem-backed {Encode(artifact.Type.ToSchemaValue())} artifact from <code>{Encode(view.SelectedArtifact.RelativePath)}</code>. This page shows stored metadata, markdown sections, and draft editing controls when the artifact is pending review.</p>");
+        body.AppendLine("<div class=\"hero-actions\">");
+        body.AppendLine($"<a class=\"button ghost\" href=\"/projects/{Encode(view.Project.Workspace.ProjectId)}\">Project artifacts</a>");
+        body.AppendLine($"<a class=\"button ghost\" href=\"/projects/{Encode(view.Project.Workspace.ProjectId)}/queue\">Review queue</a>");
+        body.AppendLine("</div>");
         body.AppendLine("</section>");
 
         if (validationErrors.Count > 0)
@@ -184,6 +191,7 @@ internal static class OperatorShellPageRenderer
         }
         else
         {
+            body.AppendLine("<div class=\"table-scroll\">");
             body.AppendLine("<table><thead><tr><th>Position</th><th>Title</th><th>Status</th><th>Type</th><th>Pending Since</th><th>Review</th></tr></thead><tbody>");
             for (var index = 0; index < snapshot.PendingItems.Count; index++)
             {
@@ -200,6 +208,7 @@ internal static class OperatorShellPageRenderer
             }
 
             body.AppendLine("</tbody></table>");
+            body.AppendLine("</div>");
         }
 
         body.AppendLine("</section>");
@@ -269,6 +278,7 @@ internal static class OperatorShellPageRenderer
         else
         {
             body.AppendLine(RenderRevisionDiffSummary(view.RevisionDiff));
+            body.AppendLine("<div class=\"table-scroll\">");
             body.AppendLine("<table><thead><tr><th>Area</th><th>Field</th><th>Change</th><th>Before</th><th>After</th></tr></thead><tbody>");
             foreach (var change in view.RevisionDiff.Changes)
             {
@@ -282,6 +292,7 @@ internal static class OperatorShellPageRenderer
             }
 
             body.AppendLine("</tbody></table>");
+            body.AppendLine("</div>");
         }
 
         body.AppendLine("</section>");
@@ -316,9 +327,12 @@ internal static class OperatorShellPageRenderer
         html.AppendLine("<body>");
         html.AppendLine("<div class=\"shell\">");
         html.AppendLine("<header class=\"topbar\">");
-        html.AppendLine("<div>");
+        html.AppendLine("<div class=\"topbar-main\">");
+        html.AppendLine("<div class=\"brand-block\">");
         html.AppendLine("<a class=\"brand\" href=\"/\">Memora.Ui</a>");
         html.AppendLine("<p class=\"topbar-copy\">Human-loop operator shell for local workspace files.</p>");
+        html.AppendLine("</div>");
+        html.AppendLine(RenderNavigation(selectedProjectId));
         html.AppendLine("</div>");
         html.AppendLine(RenderProjectSelector(projects, selectedProjectId));
         html.AppendLine("</header>");
@@ -334,13 +348,38 @@ internal static class OperatorShellPageRenderer
         return html.ToString();
     }
 
+    private static string RenderNavigation(string? selectedProjectId)
+    {
+        var html = new StringBuilder();
+        html.AppendLine("<nav class=\"topnav\" aria-label=\"Primary navigation\">");
+        html.AppendLine("<a href=\"/\">Home</a>");
+
+        if (!string.IsNullOrWhiteSpace(selectedProjectId))
+        {
+            var projectId = Encode(selectedProjectId);
+            html.AppendLine($"<a href=\"/projects/{projectId}\">Artifacts</a>");
+            html.AppendLine($"<a href=\"/projects/{projectId}/queue\">Queue</a>");
+            html.AppendLine($"<a href=\"/context-viewer?projectId={projectId}\">Context</a>");
+            html.AppendLine($"<a href=\"/understanding?projectId={projectId}\">Understanding</a>");
+        }
+        else
+        {
+            html.AppendLine("<a href=\"/context-viewer\">Context</a>");
+            html.AppendLine("<a href=\"/understanding\">Understanding</a>");
+        }
+
+        html.AppendLine("</nav>");
+        return html.ToString();
+    }
+
     private static string RenderProjectSelector(
         IReadOnlyList<OperatorProjectSummary> projects,
         string? selectedProjectId)
     {
         var html = new StringBuilder();
         html.AppendLine("<label class=\"selector\">");
-        html.AppendLine("<span>Project Selector</span>");
+        html.AppendLine("<span class=\"selector-title\">Project Selector</span>");
+        html.AppendLine($"<span class=\"selector-hint\">{Encode(string.IsNullOrWhiteSpace(selectedProjectId) ? "Choose a workspace" : "Switch workspace context")}</span>");
         html.AppendLine("<select onchange=\"if (this.value) window.location.href = this.value;\">");
         html.AppendLine("<option value=\"/\">Choose a project</option>");
 
@@ -529,16 +568,25 @@ internal static class OperatorShellPageRenderer
     private static string Encode(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);
 
     private const string Styles = """
+* { box-sizing: border-box; }
+html, body { overflow-x: hidden; }
 body { margin: 0; font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif; background: radial-gradient(circle at top left, rgba(232, 188, 124, 0.22), transparent 30%), linear-gradient(180deg, #f5efe5 0%, #ebe0d0 100%); color: #1f1a16; }
 a { color: #7d341f; }
 code, pre, select, input, textarea, button { font-family: "Cascadia Code", "Consolas", monospace; }
+code, pre { overflow-wrap: anywhere; word-break: break-word; }
 .shell { max-width: 1180px; margin: 0 auto; padding: 24px; }
 .topbar, .footer, .hero, .panel, .project-card, .section-card { backdrop-filter: blur(8px); background: rgba(255, 249, 241, 0.82); border: 1px solid rgba(91, 56, 35, 0.16); box-shadow: 0 18px 40px rgba(57, 35, 21, 0.08); }
 .topbar, .footer { border-radius: 24px; padding: 18px 22px; }
-.topbar { display: flex; justify-content: space-between; gap: 20px; align-items: end; margin-bottom: 20px; }
+.topbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 320px); gap: 20px; align-items: end; margin-bottom: 20px; }
+.topbar-main { min-width: 0; display: grid; gap: 14px; }
+.brand-block { min-width: 0; }
 .brand { font-size: 1.4rem; font-weight: 700; text-decoration: none; }
-.topbar-copy, .muted { color: #695748; }
-.selector { display: grid; gap: 8px; min-width: 280px; }
+.topbar-copy, .muted { color: #695748; overflow-wrap: anywhere; }
+.topnav { display: flex; flex-wrap: wrap; gap: 8px; }
+.topnav a { display: inline-flex; align-items: center; min-height: 34px; padding: 7px 10px; border: 1px solid rgba(125, 52, 31, 0.18); border-radius: 999px; background: rgba(255, 255, 255, 0.52); color: #7d341f; text-decoration: none; }
+.selector { display: grid; grid-template-columns: 1fr; gap: 4px; min-width: 0; max-width: 100%; }
+.selector-title { font-size: 0.92rem; }
+.selector-hint { color: #695748; font-size: 0.78rem; }
 .selector select, input, textarea { width: 100%; border-radius: 14px; border: 1px solid rgba(91, 56, 35, 0.2); padding: 12px 14px; background: rgba(255, 255, 255, 0.86); }
 .hero, .panel, .project-card, .section-card { border-radius: 28px; padding: 24px; }
 .hero { margin-bottom: 20px; position: relative; overflow: hidden; }
@@ -547,8 +595,11 @@ code, pre, select, input, textarea, button { font-family: "Cascadia Code", "Cons
 .eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.8rem; color: #8a6041; }
 h1, h2, h3 { margin-top: 0; }
 .lede { max-width: 70ch; font-size: 1.05rem; }
+.context-note { color: #4d4037; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .panel { margin-bottom: 20px; }
-.panel-header { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; margin-bottom: 16px; }
+.panel-header { display: grid; gap: 8px; margin-bottom: 16px; }
+.panel-header h2, .panel-header p { margin-bottom: 0; min-width: 0; }
 .project-grid, .two-up { display: grid; gap: 20px; }
 .project-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .two-up { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
@@ -557,8 +608,9 @@ h1, h2, h3 { margin-top: 0; }
 .badge-draft, .badge-proposed { background: #f0c98b; }
 .badge-approved { background: #b8d1b0; }
 .badge-superseded, .badge-deprecated { background: #d9c6bb; }
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; vertical-align: top; padding: 12px 10px; border-bottom: 1px solid rgba(91, 56, 35, 0.12); }
+.table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; border-radius: 18px; }
+table { width: 100%; min-width: 680px; border-collapse: collapse; }
+th, td { text-align: left; vertical-align: top; padding: 12px 10px; border-bottom: 1px solid rgba(91, 56, 35, 0.12); overflow-wrap: anywhere; }
 .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
 .meta-grid dt { color: #8a6041; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; }
 .meta-grid dd { margin: 6px 0 0; }
@@ -578,6 +630,20 @@ pre { white-space: pre-wrap; margin: 0; }
 .alert { border-color: rgba(146, 50, 40, 0.34); }
 .note { background: rgba(245, 232, 210, 0.85); }
 .footer { margin-top: 20px; }
-@media (max-width: 720px) { .shell { padding: 16px; } .topbar { align-items: stretch; } }
+@media (max-width: 720px) {
+  .shell { padding: 16px; }
+  .topbar { grid-template-columns: 1fr; align-items: stretch; }
+  .topnav { gap: 6px; }
+  .topnav a { flex: 1 1 auto; justify-content: center; }
+  .hero, .panel, .project-card, .section-card { border-radius: 22px; padding: 24px; }
+  .hero.compact h1 { font-size: 1.9rem; }
+  .two-up { grid-template-columns: 1fr; }
+}
+@media (max-width: 460px) {
+  .shell { padding: 12px; }
+  .topbar, .footer { padding: 16px; border-radius: 20px; }
+  .hero, .panel, .project-card, .section-card { padding: 22px; }
+  .project-grid { grid-template-columns: 1fr; }
+}
 """;
 }
