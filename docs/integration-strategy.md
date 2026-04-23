@@ -58,6 +58,10 @@ primary provider-facing surface.
 Both provider-facing surfaces reuse the shared agent interaction contract in
 `src/Memora.Core/AgentInteraction/AgentInteractionContract.cs`.
 
+The current external runtime boundary is summarized in
+`docs/external-runtime-contract.md` and anchored by
+`src/Memora.Core/AgentInteraction/ExternalRuntimeContract.cs`.
+
 That contract defines:
 
 - project lookup responses
@@ -66,6 +70,7 @@ That contract defines:
 - proposal requests for updates
 - outcome recording requests
 - shared validation and error shapes
+- a provider-agnostic external runtime contract definition for MCP and OpenAPI
 
 This shared contract is the boundary that keeps business behavior aligned across
 MCP and OpenAPI. Integration layers adapt the contract; they do not redefine
