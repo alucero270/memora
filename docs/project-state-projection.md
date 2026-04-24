@@ -209,6 +209,18 @@ internal-only fields such as:
 Those details may influence selection, but they are not part of the current
 runtime-facing serialized projection.
 
+## Contract Fit
+
+The current projection fits the existing shared runtime contract shapes.
+
+- read operation: `get_context`
+- request contract: `GetContextRequest`
+- response contract: `GetContextResponse`
+- serialized projection payload: `GetContextResponse.bundle`
+
+No additional top-level project-state operation is needed for M9 because the
+existing contract already carries the stabilized deterministic projection.
+
 ## Mapping Summary
 
 The project-state projection for external runtimes is the existing shared

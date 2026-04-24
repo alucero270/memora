@@ -104,6 +104,19 @@ public sealed class AgentInteractionContractTests
         Assert.Contains(contract.Constraints, constraint => constraint.Code == "boundary.no_runtime_host");
     }
 
+    [Fact]
+    public void ProjectStateProjection_UsesExistingGetContextContractShape()
+    {
+        var contract = ExternalRuntimeContract.Current;
+
+        Assert.Contains(
+            contract.Operations,
+            operation => operation.Name == "get_context" &&
+                         operation.RequestContract == nameof(GetContextRequest) &&
+                         operation.ResponseContract == nameof(GetContextResponse));
+        Assert.DoesNotContain(contract.Operations, operation => operation.Name == "get_project_state");
+    }
+
     private static ArtifactProposalContent CreateContent() =>
         new(
             "Context decision",
