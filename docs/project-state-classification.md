@@ -61,7 +61,7 @@ Examples:
 - reviewable outcomes
 - session summaries
 
-These materials may appear in the projection when explicitly requested or when
+These materials may appear in the state view when explicitly requested or when
 supporting history is included. They remain review-only until approval changes
 their lifecycle state.
 

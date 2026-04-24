@@ -55,19 +55,19 @@ not about any specific provider integration.
 - behavior: read-only deterministic context assembly with explainable inclusion
   reasoning
 
-#### Project-State Projection Fit
+#### Project-State View Fit
 
-The deterministic project-state projection defined in
-`docs/project-state-projection.md` is carried by the existing
+The deterministic project-state view defined in
+`docs/project-state-view.md` is carried by the existing
 `GetContextResponse.bundle` shape.
 
 That means:
 
-- the projection already fits the shared runtime contract
+- the state view already fits the shared runtime contract
 - `get_context` remains the published read operation for project-state output
 - no additional top-level `get_project_state` operation is required in M9
 
-The projection is the serialized bundle returned by the current contract, not a
+The state view is the serialized bundle returned by the current contract, not a
 second runtime-facing state model.
 
 ### New Artifact Proposal

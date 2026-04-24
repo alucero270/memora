@@ -460,7 +460,7 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
             .ToArray();
 
     private static AgentContextBundle MapBundle(GetContextRequest request, ContextBundle bundle) =>
-        ProjectStateProjectionSerializer.Normalize(
+        ProjectStateViewSerializer.Normalize(
             new(
             request,
             bundle.Layers.Select(layer =>
