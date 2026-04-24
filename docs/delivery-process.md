@@ -9,6 +9,7 @@ issue work.
 - do not expand scope beyond the current issue or milestone slice
 - keep current behavior and roadmap behavior clearly separated in docs
 - run the smallest meaningful validation for each touched project
+- prefer the existing clean checkout; do not create a sibling worktree unless the current checkout is dirty or otherwise unsafe to reuse
 
 ## Milestone Closeout
 
@@ -61,14 +62,36 @@ After the final mainline merge:
 - confirm every issue in the stack closed or was manually closed for the correct
   mainline merge
 - confirm no remaining stack PR targets a deleted or stale intermediate branch
+- compare each merged stack branch against `origin/main` using a no-merges,
+  cherry-pick-aware log before deleting it
+- treat any unique non-merge commit on a supposedly merged stack branch as a
+  cleanup blocker until that work is either recovered into `main` or explicitly
+  abandoned
 - delete completed local feature branches only after they are merged into
   `origin/main`
 - delete the matching remote feature branches after the final mainline merge
 - fetch with pruning so local branch and remote-tracking state reflects GitHub
+- remove any temporary sibling worktree only after the surviving main checkout
+  is confirmed to contain the merged result
 
 If the stack merge order goes wrong, open a narrow consolidation PR that brings
 the missing branch content into `main`, validate the combined result, and close
 issues only after the consolidation reaches the default branch.
+
+## Stale Branch Audit
+
+If the repo accumulates old stacked branches:
+
+1. fetch and prune remotes
+2. list remote feature branches that no longer back an open PR
+3. compare each branch against `origin/main` with a no-merges,
+   cherry-pick-aware log
+4. delete only the branches that have no unique non-merge commits
+5. recover any remaining unique work through one narrow branch or PR before
+   deleting those stale branches
+
+Do not bulk-delete old stack branches based only on merged PR state. Stacked PR
+history can report "merged" while still leaving real commits off `main`.
 
 ## Next-Milestone Handoff
 
