@@ -460,7 +460,8 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
             .ToArray();
 
     private static AgentContextBundle MapBundle(GetContextRequest request, ContextBundle bundle) =>
-        new(
+        ProjectStateProjectionSerializer.Normalize(
+            new(
             request,
             bundle.Layers.Select(layer =>
                 new AgentContextLayer(
@@ -476,7 +477,7 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
                             artifact.InclusionReasons.Select(reason =>
                                 new AgentContextInclusionReason(reason.Code, reason.Description, reason.RelatedArtifactIds)).ToArray()))
                         .ToArray()))
-                .ToArray());
+                .ToArray()));
 
     private OutcomeResponse RecordOutcomeInternal(RecordOutcomeRequest request)
     {
