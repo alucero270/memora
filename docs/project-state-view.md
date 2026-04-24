@@ -1,13 +1,17 @@
-# Project State Projection
+# Project State View
 
 ## Purpose
 
-This document defines the canonical serialized project-state projection that
+This document defines the canonical serialized project-state view that
 Memora already produces for external runtimes today.
 
 It does not introduce a new project-state engine or a parallel domain model.
-The projection is the serialized `bundle` returned by the existing shared
+The state view is the serialized `bundle` returned by the existing shared
 `GetContextResponse` contract.
+
+`Projection` is older technical shorthand for this concept. In the docs, the
+preferred term is `deterministic state view` because it more clearly describes
+what the runtime actually receives.
 
 Primary code paths:
 
@@ -17,9 +21,9 @@ Primary code paths:
 - `src/Memora.Context/Reasoning/ContextInclusionReasoner.cs`
 - `src/Memora.Core/AgentInteraction/AgentInteractionContract.cs`
 
-## Canonical Projection Boundary
+## Canonical State View Boundary
 
-The runtime-facing serialized projection is:
+The runtime-facing serialized state view is:
 
 - `GetContextResponse.bundle`
 
@@ -30,7 +34,7 @@ It is assembled in two stages:
 2. `FileSystemAgentInteractionService.MapBundle(...)` maps that internal bundle
    into the shared runtime-facing `AgentContextBundle`.
 
-The public projection is therefore the existing shared contract shape, not the
+The public state view is therefore the existing shared contract shape, not the
 internal `Memora.Context` model.
 
 ## Serialized Shape
@@ -50,7 +54,7 @@ GetContextResponse
 
 | Field | Source | Notes |
 | --- | --- | --- |
-| `bundle` | `GetContextResponse.Bundle` | Present on success. This is the serialized project-state projection. |
+| `bundle` | `GetContextResponse.Bundle` | Present on success. This is the serialized project-state view. |
 | `errors` | `AgentInteractionResponse.Errors` | Validation or lookup failures. Not part of successful project-state content. |
 
 ### `bundle.request`
@@ -61,7 +65,7 @@ GetContextResponse
 | --- | --- | --- |
 | `projectId` | `GetContextRequest.ProjectId` | Required project identity. |
 | `taskDescription` | `GetContextRequest.TaskDescription` | Required retrieval intent. |
-| `includeDraftArtifacts` | `GetContextRequest.IncludeDraftArtifacts` | Enables draft and proposed artifacts in the projection. |
+| `includeDraftArtifacts` | `GetContextRequest.IncludeDraftArtifacts` | Enables draft and proposed artifacts in the state view. |
 | `includeLayer3History` | `GetContextRequest.IncludeLayer3History` | Enables Layer 3 supporting history. |
 | `focusArtifactIds` | `GetContextRequest.FocusArtifactIds` | Normalized, distinct, ordinal-sorted. |
 | `focusTags` | `GetContextRequest.FocusTags` | Normalized, distinct, ordinal-sorted. |
@@ -80,7 +84,7 @@ Each layer is an `AgentContextLayer` mapped from a `ContextBundleLayer`.
 | Field | Source | Notes |
 | --- | --- | --- |
 | `kind` | `ContextLayerKind -> AgentContextLayerKind` | Serialized as `Layer1`, `Layer2`, or `Layer3`. |
-| `artifacts` | `ContextBundleLayer.Artifacts` | Ordered projection entries for that layer. |
+| `artifacts` | `ContextBundleLayer.Artifacts` | Ordered state-view entries for that layer. |
 
 Layer meaning comes from the current deterministic builder:
 
@@ -104,7 +108,7 @@ Each entry is an `AgentContextArtifact`.
 | `artifact` | `ContextBundleArtifact.Artifact` | The artifact document payload. |
 | `inclusionReasons` | `ContextBundleArtifact.InclusionReasons` | Explainable inclusion justification. |
 
-The serialized projection does not expose a separate `origin` field.
+The serialized state view does not expose a separate `origin` field.
 Current external callers derive canonical versus non-canonical meaning from the
 artifact itself and the inclusion reasons:
 
@@ -182,9 +186,9 @@ Current reason families include:
 - milestone relevance
 - direct task-term matching
 
-## What The Projection Includes
+## What The State View Includes
 
-The current serialized projection already includes these project-state facts
+The current serialized state view already includes these project-state facts
 when they are derivable from loaded artifacts and the deterministic retrieval
 path:
 
@@ -195,9 +199,9 @@ path:
 - request-scoped retrieval intent through `bundle.request`
 - explainable inclusion reasoning through `inclusionReasons`
 
-## What The Projection Does Not Include
+## What The State View Does Not Include
 
-The current serialized projection intentionally does not publish separate
+The current serialized state view intentionally does not publish separate
 internal-only fields such as:
 
 - cache keys or cache-hit status from `ContextPackageCache`
@@ -207,27 +211,27 @@ internal-only fields such as:
 - a second canonical/projected truth model outside the existing context bundle
 
 Those details may influence selection, but they are not part of the current
-runtime-facing serialized projection.
+runtime-facing serialized state view.
 
 ## Contract Fit
 
-The current projection fits the existing shared runtime contract shapes.
+The current state view fits the existing shared runtime contract shapes.
 
 - read operation: `get_context`
 - request contract: `GetContextRequest`
 - response contract: `GetContextResponse`
-- serialized projection payload: `GetContextResponse.bundle`
+- serialized state-view payload: `GetContextResponse.bundle`
 
 No additional top-level project-state operation is needed for M9 because the
-existing contract already carries the stabilized deterministic projection.
+existing contract already carries the stabilized deterministic state view.
 
 ## Mapping Summary
 
-The project-state projection for external runtimes is the existing shared
+The project-state view for external runtimes is the existing shared
 context contract:
 
 - internal deterministic source: `ContextBundle`
-- runtime-facing serialized projection: `AgentContextBundle`
+- runtime-facing serialized state view: `AgentContextBundle`
 - transport wrapper: `GetContextResponse`
 
 That keeps Memora on a single deterministic retrieval path and avoids a

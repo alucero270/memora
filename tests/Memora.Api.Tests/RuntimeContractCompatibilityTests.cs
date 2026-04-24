@@ -452,7 +452,7 @@ public sealed class RuntimeContractCompatibilityTests : IDisposable
             return Task.FromResult(new RuntimeContextCompatibilityResult(
                 response.IsSuccess,
                 artifactIds,
-                response.Bundle is null ? string.Empty : ProjectStateProjectionSerializer.Serialize(response.Bundle),
+                response.Bundle is null ? string.Empty : ProjectStateViewSerializer.Serialize(response.Bundle),
                 response.Errors));
         }
 

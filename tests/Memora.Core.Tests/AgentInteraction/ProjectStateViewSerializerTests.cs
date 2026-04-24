@@ -4,14 +4,14 @@ using Memora.Core.Artifacts;
 
 namespace Memora.Core.Tests.AgentInteraction;
 
-public sealed class ProjectStateProjectionSerializerTests
+public sealed class ProjectStateViewSerializerTests
 {
     [Fact]
     public void Normalize_SortsArtifactCollectionsForStableProjectionOutput()
     {
         var bundle = CreateBundle();
 
-        var normalized = ProjectStateProjectionSerializer.Normalize(bundle);
+        var normalized = ProjectStateViewSerializer.Normalize(bundle);
         var artifact = Assert.IsType<ProjectCharterArtifact>(normalized.Layers[0].Artifacts[0].Artifact);
 
         Assert.Equal(["alpha", "zeta"], artifact.Tags);
@@ -27,7 +27,7 @@ public sealed class ProjectStateProjectionSerializerTests
     [Fact]
     public void Serialize_UsesNormalizedBundleShape()
     {
-        var json = ProjectStateProjectionSerializer.Serialize(CreateBundle());
+        var json = ProjectStateViewSerializer.Serialize(CreateBundle());
         using var document = JsonDocument.Parse(json);
 
         var artifact = document.RootElement
@@ -77,12 +77,12 @@ public sealed class ProjectStateProjectionSerializerTests
                                 Need deterministic context.
 
                                 ## Decision
-                                Reuse the existing projection.
+                                Reuse the existing state view.
                                 """,
                                 new Dictionary<string, string>(StringComparer.Ordinal)
                                 {
                                     ["Problem Statement"] = "Need deterministic context.",
-                                    ["Decision"] = "Reuse the existing projection."
+                                    ["Decision"] = "Reuse the existing state view."
                                 }),
                             [
                                 new AgentContextInclusionReason(
