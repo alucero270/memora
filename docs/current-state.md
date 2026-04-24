@@ -25,6 +25,7 @@ It is intentionally separate from roadmap and milestone planning docs.
 - explicit inclusion reasoning for selected artifacts, including traversed relationship paths
 - layered bundle assembly in `Memora.Context`
 - context viewer UI route at `/context-viewer`
+- optional retrieval extension contracts exist for future advisory candidate discovery, but they are disabled by default and do not execute semantic retrieval in core v1
 
 ### Integration Surfaces
 
@@ -104,6 +105,7 @@ It is intentionally separate from roadmap and milestone planning docs.
 - `src/Memora.Context/Reasoning/ContextInclusionReasoner.cs`
 - `src/Memora.Context/Assembly/ContextBundleBuilder.cs`
 - `src/Memora.Context/Assembly/ContextPackageCache.cs`
+- `src/Memora.Context/Extensions/OptionalRetrievalExtension.cs`
 
 ### Retrieval Evolution Docs
 

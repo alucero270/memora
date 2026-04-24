@@ -220,11 +220,14 @@ Before starting issue work:
 - confirm the local checkout is safe to use
 - start from updated `main`
 - pull `origin/main` immediately before creating the issue branch
+- prefer reusing the main checkout in place
+- do not create a sibling worktree when the current checkout is already clean and safe to use
 
 If the current checkout is dirty with unrelated changes:
 
 - use a clean sibling worktree from updated `main`
 - do not disturb the existing checkout
+- record the sibling worktree path in the working notes so it can be removed during cleanup
 
 ### 15.2 Branching
 
@@ -251,6 +254,7 @@ After merge:
 - delete the completed branch locally
 - delete the completed branch on GitHub
 - remove any completed local worktree used for that issue
+- if a sibling worktree was used, verify the surviving main checkout now contains the merged commit before deleting the worktree
 
 ---
 
@@ -277,11 +281,13 @@ Before starting unattended milestone execution:
 - pull `origin/main` immediately before creating the first issue branch
 - identify the target milestone and its open issues
 - confirm issue order from milestone definitions, issue dependencies, and issue scope
+- prefer the existing checkout when it is clean; only create a sibling worktree when the current checkout cannot be used safely
 
 If the current checkout is dirty with unrelated changes:
 
 - create a clean sibling worktree from updated `main`
 - use that clean worktree as the milestone starting point
+- record that worktree path so post-merge cleanup can remove it
 
 ### 16.3 Branching Model
 
@@ -370,6 +376,8 @@ After the milestone stack is reviewed and merged, return to the normal cleanup r
 - delete completed branches locally
 - delete completed branches on GitHub
 - remove completed worktrees
+- verify each merged issue branch has no unique non-merge commits relative to `origin/main` before deleting it
+- if any merged stack branch still differs from `origin/main`, stop cleanup and open a narrow recovery branch or PR before deleting anything else
 
 ---
 
