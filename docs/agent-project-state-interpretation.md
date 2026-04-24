@@ -1,13 +1,13 @@
-# Agent Project-State Interpretation
+# Agent State-View Interpretation
 
 ## Purpose
 
 This guide explains how an external agent should interpret the deterministic
-project-state projection returned by Memora.
+state view returned by Memora.
 
 Use this guide with:
 
-- `docs/project-state-projection.md`
+- `docs/project-state-view.md`
 - `docs/external-runtime-contract.md`
 
 The goal is to make the runtime-facing output usable without reading the
@@ -15,10 +15,10 @@ implementation first.
 
 ## First Rule
 
-Treat the projection as grounded context, not permission to mutate truth.
+Treat the state view as grounded context, not permission to mutate truth.
 
 Memora returns a deterministic read model of current project state through the
-existing `get_context` contract. That projection helps an agent understand the
+existing `get_context` contract. That state view helps an agent understand the
 project. It does not let the agent bypass approval, lifecycle, or canonical
 storage rules.
 
@@ -40,7 +40,7 @@ Examples:
 
 ## What Does Not Count As Canonical
 
-The projection may also include non-canonical state when the request allows it
+The state view may also include non-canonical state when the request allows it
 or when supporting history is explicitly requested.
 
 Agents must not treat these as approved truth:
@@ -69,7 +69,7 @@ Agents should interpret lifecycle conservatively:
 
 ## How To Read Inclusion
 
-If an artifact appears in the projection, that means Memora selected it through
+If an artifact appears in the state view, that means Memora selected it through
 the deterministic retrieval path for the current request.
 
 The `inclusionReasons` list explains why it appeared. Common examples:
@@ -106,25 +106,25 @@ Agents should read top-down:
 ## Deterministic Guarantees
 
 For identical approved inputs and identical request inputs, Memora aims to
-return the same serialized projection.
+return the same serialized state view.
 
 Agents may rely on these properties:
 
 - artifact selection is deterministic
 - ordering is deterministic
 - inclusion reasoning is deterministic
-- the projection is explainable from stored artifacts and the request
+- the state view is explainable from stored artifacts and the request
 
 Agents should not infer more than that:
 
-- the projection is not semantic search
-- the projection is not probabilistic ranking
-- the projection is not a claim that every relevant artifact in existence was
+- the state view is not semantic search
+- the state view is not probabilistic ranking
+- the state view is not a claim that every relevant artifact in existence was
   returned
 
 ## Safe Agent Behavior
 
-An external agent should use the projection like this:
+An external agent should use the state view like this:
 
 1. treat approved artifacts as the authoritative baseline
 2. use non-canonical artifacts only as review-only or supporting context
@@ -138,7 +138,7 @@ Do not:
 
 - treat draft or proposed artifacts as already approved
 - treat session summaries as canonical decisions
-- infer approval from presence in the projection alone
+- infer approval from presence in the state view alone
 - assume Memora has granted write permission because context was returned
 - overwrite project understanding with runtime guesses that are not backed by
   approved artifacts

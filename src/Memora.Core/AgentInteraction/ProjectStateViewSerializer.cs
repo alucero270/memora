@@ -3,7 +3,7 @@ using Memora.Core.Artifacts;
 
 namespace Memora.Core.AgentInteraction;
 
-public static class ProjectStateProjectionSerializer
+public static class ProjectStateViewSerializer
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 

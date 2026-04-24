@@ -1,8 +1,8 @@
-# Project State Boundary And Size Rules
+# Project State View Boundary And Size Rules
 
 ## Purpose
 
-This document defines the current projection boundary for deterministic
+This document defines the current state-view boundary for deterministic
 project-state output and the size rules that external agents should assume.
 
 It is a design and interpretation document for M9. It does not add new
@@ -11,16 +11,16 @@ builder.
 
 ## Boundary Principle
 
-The project-state projection is intentionally bounded context, not a
+The project-state view is intentionally bounded context, not a
 dump-everything export of the workspace.
 
-The projection should:
+The state view should:
 
 - ground an external agent in current project state
 - stay explainable from the request and stored artifacts
 - stay small enough to reason about as an agent-facing payload
 
-The projection should not:
+The state view should not:
 
 - attempt to return every artifact in a workspace by default
 - include unlimited historical material
@@ -72,7 +72,7 @@ grounding truth.
 
 ## Status Boundary
 
-The current projection boundary is also lifecycle-aware.
+The current state-view boundary is also lifecycle-aware.
 
 Current behavior:
 
@@ -81,7 +81,7 @@ Current behavior:
   `includeDraftArtifacts = true`
 - session summaries appear only through the optional history path
 
-That means the default projection is bounded not only by count, but also by
+That means the default state view is bounded not only by count, but also by
 canonical status.
 
 ## Relationship Boundary
@@ -94,11 +94,11 @@ Current behavior:
 - traversal is bounded to depth 2
 - traversal is used to justify inclusion, not to create an unbounded graph walk
 
-This prevents the projection from expanding into uncontrolled graph exploration.
+This prevents the state view from expanding into uncontrolled graph exploration.
 
 ## Body Versus Summary Guidance
 
-The current serialized projection carries full selected artifact bodies and
+The current serialized state view carries full selected artifact bodies and
 structured sections for the artifacts that make it into the bundle.
 
 Agents should interpret that as:
@@ -116,7 +116,7 @@ Design guidance for future enforcement:
 
 ## Ordering Rules
 
-The projection is intended to have stable ordering for identical inputs.
+The state view is intended to have stable ordering for identical inputs.
 
 Current ordering rules:
 
@@ -124,7 +124,7 @@ Current ordering rules:
 - Layer 1 anchor order is charter, active plan, repo structure
 - Layer 2 and Layer 3 artifact order follows deterministic ranking and stable
   tie-breaks
-- normalized projection serialization sorts order-sensitive collections such as
+- normalized state-view serialization sorts order-sensitive collections such as
   tags, relationship entries, and section keys
 
 Ordering is part of determinism, not just presentation.
@@ -138,7 +138,7 @@ Future size enforcement should start from these rules:
    material
 3. prefer reducing lower-priority or optional layers before truncating anchor
    content
-4. make any truncation explicit in the projection shape rather than invisible
+4. make any truncation explicit in the state-view shape rather than invisible
 5. do not invent semantic or probabilistic fallback behavior to hide size
    limits
 
@@ -146,8 +146,8 @@ Future size enforcement should start from these rules:
 
 External agents should assume:
 
-- the projection is intentionally bounded
-- absence from the projection does not mean an artifact does not exist
+- the state view is intentionally bounded
+- absence from the state view does not mean an artifact does not exist
 - Layer 1 plus relevant Layer 2 is the primary grounding path
 - Layer 3 is optional supporting history
 - future enforcement may tighten size, but it should preserve the same explicit
@@ -155,6 +155,6 @@ External agents should assume:
 
 ## Summary
 
-The deterministic project-state projection is a bounded, explainable working
+The deterministic project-state view is a bounded, explainable working
 set. It is not an unbounded workspace export, and future size controls should
 preserve the same canonical-first, deterministic retrieval behavior.
