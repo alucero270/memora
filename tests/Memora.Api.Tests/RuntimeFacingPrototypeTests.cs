@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Memora.Api.Services;
 using Memora.Core.AgentInteraction;
@@ -73,6 +75,68 @@ public sealed class RuntimeFacingPrototypeTests : IDisposable
         Assert.Equal(ArtifactStatus.Proposed, proposal.Response.ResultingStatus);
         Assert.True(File.Exists(Path.Combine(workspace.DraftsRootPath, "decision", "ADR-200.r0001.md")));
         Assert.False(File.Exists(Path.Combine(workspace.CanonicalDecisionsPath, "ADR-200.r0001.md")));
+    }
+
+    [Fact]
+    public async Task OpenApiRuntimePrototype_ProducesStableProjectionAcrossRepeatedRuns()
+    {
+        var workspace = CreateWorkspace("memora");
+        _fileStore.Save(workspace, CreateCharterArtifact());
+        _fileStore.Save(workspace, CreatePlanArtifact());
+        _fileStore.Save(workspace, CreateDecisionArtifact());
+
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+                builder.ConfigureServices(services =>
+                {
+                    services.RemoveAll<IAgentInteractionService>();
+                    services.AddSingleton<IAgentInteractionService>(_ => new FileSystemAgentInteractionService(_workspacesRootPath));
+                }));
+
+        var client = new OpenApiRuntimePrototypeClient(factory.CreateClient());
+        var request = new GetContextRequest(
+            "memora",
+            "Prepare runtime-facing context for implementation guidance.",
+            focusArtifactIds: ["ADR-001"],
+            focusTags: ["runtime"]);
+        var bundles = new List<string>();
+        var hashes = new List<string>();
+
+        for (var index = 0; index < 3; index++)
+        {
+            var context = await client.GetContextAsync(request);
+            Assert.Equal(HttpStatusCode.OK, context.StatusCode);
+
+            var bundleJson = context.Response.RootElement.GetProperty("bundle").GetRawText();
+            bundles.Add(bundleJson);
+            hashes.Add(Hash(bundleJson));
+        }
+
+        Assert.All(bundles, bundle => Assert.Equal(bundles[0], bundle));
+        Assert.All(hashes, hash => Assert.Equal(hashes[0], hash));
+
+        using var document = JsonDocument.Parse(bundles[0]);
+        var decisionArtifact = document.RootElement
+            .GetProperty("layers")
+            .EnumerateArray()
+            .SelectMany(layer => layer.GetProperty("artifacts").EnumerateArray())
+            .Single(artifact => artifact.GetProperty("artifact").GetProperty("id").GetString() == "ADR-001")
+            .GetProperty("artifact");
+
+        Assert.Equal(
+            ["alpha", "runtime"],
+            decisionArtifact.GetProperty("tags").EnumerateArray().Select(item => item.GetString() ?? string.Empty).ToArray());
+        Assert.Equal(
+            ["Alternatives Considered", "Consequences", "Context", "Decision"],
+            decisionArtifact.GetProperty("sections").EnumerateObject().Select(property => property.Name).ToArray());
+        Assert.Equal(
+            [
+                $"{(int)ArtifactRelationshipKind.Affects}:PLN-001",
+                $"{(int)ArtifactRelationshipKind.DerivedFrom}:CHR-001"
+            ],
+            decisionArtifact.GetProperty("links").GetProperty("relationships").EnumerateArray()
+                .Select(relationship => $"{relationship.GetProperty("kind").GetInt32()}:{relationship.GetProperty("targetArtifactId").GetString()}")
+                .ToArray());
     }
 
     public void Dispose()
@@ -185,10 +249,14 @@ public sealed class RuntimeFacingPrototypeTests : IDisposable
             new DateTimeOffset(2026, 4, 23, 10, 30, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 4, 23, 10, 40, 0, TimeSpan.Zero),
             1,
-            ["runtime"],
+            ["runtime", "alpha"],
             "user",
             "runtime prototype seed",
-            ArtifactLinks.Empty,
+            new ArtifactLinks(
+                [
+                    new ArtifactRelationship(ArtifactRelationshipKind.DerivedFrom, "CHR-001"),
+                    new ArtifactRelationship(ArtifactRelationshipKind.Affects, "PLN-001")
+                ]),
             """
             ## Context
             Runtime alignment must not create provider-specific core behavior.
@@ -229,6 +297,9 @@ public sealed class RuntimeFacingPrototypeTests : IDisposable
             {
                 ["decision_date"] = "2026-04-23"
             });
+
+    private static string Hash(string value) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
     private sealed class OpenApiRuntimePrototypeClient(HttpClient httpClient)
     {

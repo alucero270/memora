@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Memora.Api.Services;
 using Memora.Core.AgentInteraction;
@@ -87,6 +89,43 @@ public sealed class RuntimeContractCompatibilityTests : IDisposable
             Assert.Contains(response.Errors, error => error.Code == "artifact.frontmatter.missing");
             Assert.Contains(response.Errors, error => error.Path == "decision_date");
         }
+    }
+
+    [Fact]
+    public async Task PublishedRuntimeSurfaces_ProduceStableProjectionAcrossRepeatedRuns()
+    {
+        var workspace = CreateWorkspace("memora");
+        _fileStore.Save(workspace, CreateCharterArtifact());
+        _fileStore.Save(workspace, CreatePlanArtifact());
+        _fileStore.Save(workspace, CreateDecisionArtifact());
+
+        using var harness = CreateHarness();
+        var request = new GetContextRequest(
+            "memora",
+            "Prepare compatibility context for deterministic verification.",
+            focusArtifactIds: ["ADR-001"],
+            focusTags: ["runtime"]);
+        var serializedBundlesByClient = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        foreach (var client in harness.CreateClients())
+        {
+            var bundles = new List<string>();
+            var hashes = new List<string>();
+
+            for (var index = 0; index < 3; index++)
+            {
+                var response = await client.GetContextAsync(request);
+                Assert.True(response.IsSuccess, $"{client.Name} context errors: {FormatErrors(response.Errors)}");
+                bundles.Add(response.SerializedBundle);
+                hashes.Add(Hash(response.SerializedBundle));
+            }
+
+            Assert.All(bundles, bundle => Assert.Equal(bundles[0], bundle));
+            Assert.All(hashes, hash => Assert.Equal(hashes[0], hash));
+            serializedBundlesByClient[client.Name] = bundles;
+        }
+
+        Assert.Equal(serializedBundlesByClient["OpenAPI"][0], serializedBundlesByClient["MCP"][0]);
     }
 
     public void Dispose()
@@ -275,9 +314,13 @@ public sealed class RuntimeContractCompatibilityTests : IDisposable
     private static string FormatErrors(IReadOnlyList<AgentInteractionError> errors) =>
         string.Join(" | ", errors.Select(error => $"{error.Code}:{error.Path}:{error.Message}"));
 
+    private static string Hash(string value) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+
     private sealed record RuntimeContextCompatibilityResult(
         bool IsSuccess,
         IReadOnlyList<string> ArtifactIds,
+        string SerializedBundle,
         IReadOnlyList<AgentInteractionError> Errors);
 
     private sealed record RuntimeProposalCompatibilityResult(
@@ -343,11 +386,11 @@ public sealed class RuntimeContractCompatibilityTests : IDisposable
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                return new RuntimeContextCompatibilityResult(false, [], ReadErrors(document.RootElement));
+                return new RuntimeContextCompatibilityResult(false, [], string.Empty, ReadErrors(document.RootElement));
             }
 
-            var artifactIds = document.RootElement
-                .GetProperty("bundle")
+            var bundle = document.RootElement.GetProperty("bundle");
+            var artifactIds = bundle
                 .GetProperty("layers")
                 .EnumerateArray()
                 .SelectMany(layer => layer.GetProperty("artifacts").EnumerateArray())
@@ -356,7 +399,7 @@ public sealed class RuntimeContractCompatibilityTests : IDisposable
                 .Cast<string>()
                 .ToArray();
 
-            return new RuntimeContextCompatibilityResult(true, artifactIds, []);
+            return new RuntimeContextCompatibilityResult(true, artifactIds, bundle.GetRawText(), []);
         }
 
         public async Task<RuntimeProposalCompatibilityResult> ProposeArtifactAsync(ProposeArtifactRequest request)
@@ -406,7 +449,11 @@ public sealed class RuntimeContractCompatibilityTests : IDisposable
                     .Select(artifact => artifact.Artifact.Id)
                     .ToArray();
 
-            return Task.FromResult(new RuntimeContextCompatibilityResult(response.IsSuccess, artifactIds, response.Errors));
+            return Task.FromResult(new RuntimeContextCompatibilityResult(
+                response.IsSuccess,
+                artifactIds,
+                response.Bundle is null ? string.Empty : ProjectStateProjectionSerializer.Serialize(response.Bundle),
+                response.Errors));
         }
 
         public Task<RuntimeProposalCompatibilityResult> ProposeArtifactAsync(ProposeArtifactRequest request)
