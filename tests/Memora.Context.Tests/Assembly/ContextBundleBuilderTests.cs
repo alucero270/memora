@@ -118,6 +118,124 @@ public sealed class ContextBundleBuilderTests
             second.Layers.Select(layer => string.Join(",", layer.Artifacts.Select(artifact => artifact.Artifact.Id))));
     }
 
+    [Fact]
+    public void Build_RespectsMaxLayer2ArtifactsCapAndKeepsTopRankedCandidates()
+    {
+        var request = new ContextBundleRequest(
+            "memora",
+            "Prepare milestone 3 context.",
+            maxLayer2Artifacts: 2);
+
+        var bundle = _builder.Build(
+            request,
+            [
+                CreateCharterArtifact(),
+                CreateActivePlanArtifact(),
+                CreateLayer2DecisionArtifact("ADR-001", new DateTimeOffset(2026, 4, 17, 9, 5, 0, TimeSpan.Zero)),
+                CreateLayer2DecisionArtifact("ADR-002", new DateTimeOffset(2026, 4, 17, 9, 15, 0, TimeSpan.Zero)),
+                CreateLayer2DecisionArtifact("ADR-003", new DateTimeOffset(2026, 4, 17, 9, 25, 0, TimeSpan.Zero)),
+                CreateLayer2DecisionArtifact("ADR-004", new DateTimeOffset(2026, 4, 17, 9, 35, 0, TimeSpan.Zero))
+            ]);
+
+        Assert.Equal(2, bundle.Layers[1].Artifacts.Count);
+        Assert.Equal(["ADR-004", "ADR-003"], bundle.Layers[1].Artifacts.Select(entry => entry.Artifact.Id));
+    }
+
+    [Fact]
+    public void Build_RespectsMaxLayer3ArtifactsCapWhenSupportingHistoryIsRequested()
+    {
+        var request = new ContextBundleRequest(
+            "memora",
+            "Prepare milestone 3 context.",
+            includeLayer3History: true,
+            maxLayer3Artifacts: 2);
+
+        var bundle = _builder.Build(
+            request,
+            [
+                CreateCharterArtifact(),
+                CreateActivePlanArtifact(),
+                CreateSessionSummaryArtifact("SUM-001", new DateTimeOffset(2026, 4, 17, 9, 5, 0, TimeSpan.Zero)),
+                CreateSessionSummaryArtifact("SUM-002", new DateTimeOffset(2026, 4, 17, 9, 15, 0, TimeSpan.Zero)),
+                CreateSessionSummaryArtifact("SUM-003", new DateTimeOffset(2026, 4, 17, 9, 25, 0, TimeSpan.Zero)),
+                CreateSessionSummaryArtifact("SUM-004", new DateTimeOffset(2026, 4, 17, 9, 35, 0, TimeSpan.Zero))
+            ]);
+
+        Assert.Equal(2, bundle.Layers[2].Artifacts.Count);
+        Assert.Equal(["SUM-004", "SUM-003"], bundle.Layers[2].Artifacts.Select(entry => entry.Artifact.Id));
+    }
+
+    private static ArchitectureDecisionArtifact CreateLayer2DecisionArtifact(string id, DateTimeOffset updatedAtUtc) =>
+        new(
+            id,
+            "memora",
+            ArtifactStatus.Approved,
+            $"Decision {id}",
+            new DateTimeOffset(2026, 4, 17, 9, 0, 0, TimeSpan.Zero),
+            updatedAtUtc,
+            1,
+            ["milestone-3", "context"],
+            "user",
+            "layer 2 cap seed",
+            ArtifactLinks.Empty,
+            """
+            ## Context
+            Layer 2 cap fixture.
+
+            ## Decision
+            Cover layer 2 capping.
+
+            ## Alternatives Considered
+            None.
+
+            ## Consequences
+            Cap behavior is verified.
+            """,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["Context"] = "Layer 2 cap fixture.",
+                ["Decision"] = "Cover layer 2 capping.",
+                ["Alternatives Considered"] = "None.",
+                ["Consequences"] = "Cap behavior is verified."
+            },
+            "2026-04-17");
+
+    private static SessionSummaryArtifact CreateSessionSummaryArtifact(string id, DateTimeOffset updatedAtUtc) =>
+        new(
+            id,
+            "memora",
+            ArtifactStatus.Draft,
+            $"Summary {id}",
+            new DateTimeOffset(2026, 4, 17, 9, 0, 0, TimeSpan.Zero),
+            updatedAtUtc,
+            1,
+            ["summary"],
+            "agent",
+            "layer 3 cap seed",
+            ArtifactLinks.Empty,
+            """
+            ## Summary
+            Layer 3 cap fixture.
+
+            ## Artifacts Created
+            - none
+
+            ## Artifacts Updated
+            - none
+
+            ## Open Threads
+            - none
+            """,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["Summary"] = "Layer 3 cap fixture.",
+                ["Artifacts Created"] = "- none",
+                ["Artifacts Updated"] = "- none",
+                ["Open Threads"] = "- none"
+            },
+            SessionType.Execution,
+            false);
+
     private static ProjectCharterArtifact CreateCharterArtifact() =>
         new(
             "CHR-001",
