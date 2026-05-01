@@ -441,7 +441,17 @@ public sealed class RuntimeContractCompatibilityTests : IDisposable
 
         public Task<RuntimeContextCompatibilityResult> GetContextAsync(GetContextRequest request)
         {
-            var response = _server.GetContext(request);
+            var invocation = _server.InvokeTool("get_context", request);
+            var response = invocation.Payload as GetContextResponse;
+            if (!invocation.IsSuccess || response is null)
+            {
+                return Task.FromResult(new RuntimeContextCompatibilityResult(
+                    false,
+                    [],
+                    string.Empty,
+                    invocation.Errors));
+            }
+
             var artifactIds = response.Bundle is null
                 ? []
                 : response.Bundle.Layers
@@ -458,7 +468,13 @@ public sealed class RuntimeContractCompatibilityTests : IDisposable
 
         public Task<RuntimeProposalCompatibilityResult> ProposeArtifactAsync(ProposeArtifactRequest request)
         {
-            var response = _server.ProposeArtifact(request);
+            var invocation = _server.InvokeTool("propose_artifact", request);
+            var response = invocation.Payload as ProposalResponse;
+            if (!invocation.IsSuccess || response is null)
+            {
+                return Task.FromResult(new RuntimeProposalCompatibilityResult(false, ArtifactStatus.Proposed, invocation.Errors));
+            }
+
             return Task.FromResult(new RuntimeProposalCompatibilityResult(response.IsSuccess, response.ResultingStatus, response.Errors));
         }
     }

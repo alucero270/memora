@@ -136,6 +136,28 @@ Includes:
 Outcome: Memora is ready to serve as a memory and governance substrate for
 Machina and other runtimes.
 
+## Proposed Follow-On Milestone - Remote Conversational Planning
+
+Goal: define the smallest real remote planning workflow in which an external
+conversation client can create reviewable Memora artifacts without weakening
+filesystem-first truth or approval governance.
+
+Suggested first issue:
+
+- use-case planning for remote conversational writes
+
+Suggested focus areas after that issue:
+
+- remote reachability model
+- client authentication and project scoping
+- conversation-to-artifact proposal mapping
+- remote review and approval fit
+- first real remote planning-write prototype
+
+Outcome: Memora has an explicitly scoped roadmap path for remote planning
+conversations that can update reviewable project memory without pretending the
+workflow already exists.
+
 ## Roadmap Bands
 
 ### Band 1 - Core Product Build
@@ -154,6 +176,7 @@ Machina and other runtimes.
 - Milestone 6 - Controlled Automation
 - Milestone 7 - Advanced Retrieval Evolution
 - Milestone 8 - Machina Alignment
+- Proposed Follow-On Milestone - Remote Conversational Planning
 
 ## Guidance
 

@@ -76,9 +76,31 @@ public sealed class MemoraMcpServerTests
     {
         var server = new MemoraMcpServer(new TestAgentInteractionService());
 
-        var response = server.ProposeArtifact(
+        var result = server.InvokeTool(
+            "propose_artifact",
             new ProposeArtifactRequest("memora", "ADR-001", ArtifactType.Decision, CreateContent()));
 
+        Assert.True(result.IsSuccess);
+        Assert.Equal(nameof(ProposeArtifactRequest), result.RequestContract);
+        Assert.Equal(nameof(ProposalResponse), result.ResponseContract);
+        var response = Assert.IsType<ProposalResponse>(result.Payload);
+        Assert.True(response.IsSuccess);
+        Assert.Equal(ArtifactStatus.Proposed, response.ResultingStatus);
+    }
+
+    [Fact]
+    public void RecordOutcome_ForwardsProposalOnlyBehavior()
+    {
+        var server = new MemoraMcpServer(new TestAgentInteractionService());
+
+        var result = server.InvokeTool(
+            "record_outcome",
+            new RecordOutcomeRequest("memora", "OUT-001", CreateContent()));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(nameof(RecordOutcomeRequest), result.RequestContract);
+        Assert.Equal(nameof(OutcomeResponse), result.ResponseContract);
+        var response = Assert.IsType<OutcomeResponse>(result.Payload);
         Assert.True(response.IsSuccess);
         Assert.Equal(ArtifactStatus.Proposed, response.ResultingStatus);
     }
@@ -96,6 +118,10 @@ public sealed class MemoraMcpServerTests
         var payload = Assert.IsType<GetContextResponse>(result.Payload);
         Assert.True(payload.IsSuccess);
         Assert.NotNull(payload.Bundle);
+        Assert.Equal("memora", payload.Bundle.Request.ProjectId);
+        Assert.Equal(
+            [AgentContextLayerKind.Layer1, AgentContextLayerKind.Layer2, AgentContextLayerKind.Layer3],
+            payload.Bundle.Layers.Select(layer => layer.Kind).ToArray());
     }
 
     [Fact]

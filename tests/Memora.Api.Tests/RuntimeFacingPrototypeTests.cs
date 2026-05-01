@@ -78,6 +78,66 @@ public sealed class RuntimeFacingPrototypeTests : IDisposable
     }
 
     [Fact]
+    public async Task OpenApiRuntimePrototype_CanCompleteGoldenPathWithoutMutatingDefaultStateView()
+    {
+        var workspace = CreateWorkspace("memora");
+        _fileStore.Save(workspace, CreateCharterArtifact());
+        _fileStore.Save(workspace, CreatePlanArtifact());
+        _fileStore.Save(workspace, CreateDecisionArtifact());
+
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+                builder.ConfigureServices(services =>
+                {
+                    services.RemoveAll<IAgentInteractionService>();
+                    services.AddSingleton<IAgentInteractionService>(_ => new FileSystemAgentInteractionService(_workspacesRootPath));
+                }));
+
+        var client = new OpenApiRuntimePrototypeClient(factory.CreateClient());
+        var request = new GetContextRequest(
+            "memora",
+            "Validate the Codex golden path against the shared runtime-facing contract.",
+            focusArtifactIds: ["ADR-001"],
+            focusTags: ["runtime"]);
+
+        var before = await client.GetContextAsync(request);
+        var proposal = await client.ProposeArtifactAsync(
+            new ProposeArtifactRequest(
+                "memora",
+                "ADR-200",
+                ArtifactType.Decision,
+                CreateProposalContent()));
+        var outcome = await client.RecordOutcomeAsync(
+            new RecordOutcomeRequest(
+                "memora",
+                "OUT-200",
+                CreateOutcomeContent("ADR-200")));
+        var after = await client.GetContextAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, before.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, after.StatusCode);
+        Assert.NotNull(before.Response);
+        Assert.NotNull(after.Response);
+        Assert.Equal(
+            before.Response.RootElement.GetProperty("bundle").GetRawText(),
+            after.Response.RootElement.GetProperty("bundle").GetRawText());
+
+        Assert.NotNull(proposal.Response);
+        Assert.True(proposal.Response.IsSuccess);
+        Assert.Equal(ArtifactStatus.Proposed, proposal.Response.ResultingStatus);
+
+        Assert.NotNull(outcome.Response);
+        Assert.True(outcome.Response.IsSuccess);
+        Assert.Equal(ArtifactStatus.Proposed, outcome.Response.ResultingStatus);
+        Assert.Equal(OutcomeKind.Success, outcome.Response.OutcomeKind);
+
+        Assert.True(File.Exists(Path.Combine(workspace.DraftsRootPath, "decision", "ADR-200.r0001.md")));
+        Assert.True(File.Exists(Path.Combine(workspace.DraftsRootPath, "outcome", "OUT-200.r0001.md")));
+        Assert.False(File.Exists(Path.Combine(workspace.CanonicalDecisionsPath, "ADR-200.r0001.md")));
+        Assert.False(File.Exists(Path.Combine(workspace.CanonicalOutcomesPath, "OUT-200.r0001.md")));
+    }
+
+    [Fact]
     public async Task OpenApiRuntimePrototype_ProducesStableStateViewAcrossRepeatedRuns()
     {
         var workspace = CreateWorkspace("memora");
@@ -298,6 +358,25 @@ public sealed class RuntimeFacingPrototypeTests : IDisposable
                 ["decision_date"] = "2026-04-23"
             });
 
+    private static ArtifactProposalContent CreateOutcomeContent(string proposalArtifactId) =>
+        new(
+            "Runtime workflow outcome",
+            "runtime",
+            "Capture the result of the golden-path runtime workflow.",
+            ["runtime"],
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["What Happened"] = "The runtime retrieved deterministic context, submitted a proposal, and recorded an outcome.",
+                ["Why"] = "The golden path should remain proposal-only.",
+                ["Impact"] = "The shared workflow now covers retrieval, proposal submission, and outcome recording.",
+                ["Follow-up"] = "Review the proposed decision and recorded outcome."
+            },
+            new AgentArtifactLinks([proposalArtifactId], [], [], []),
+            new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["outcome"] = "success"
+            });
+
     private static string Hash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
@@ -321,6 +400,13 @@ public sealed class RuntimeFacingPrototypeTests : IDisposable
         {
             using var response = await _httpClient.PostAsJsonAsync("/api/artifacts/proposals", request);
             var body = await response.Content.ReadFromJsonAsync<ProposalResponse>();
+            return (response.StatusCode, body);
+        }
+
+        public async Task<(HttpStatusCode StatusCode, OutcomeResponse? Response)> RecordOutcomeAsync(RecordOutcomeRequest request)
+        {
+            using var response = await _httpClient.PostAsJsonAsync("/api/outcomes", request);
+            var body = await response.Content.ReadFromJsonAsync<OutcomeResponse>();
             return (response.StatusCode, body);
         }
     }
