@@ -78,7 +78,7 @@ public sealed class RuntimeFacingPrototypeTests : IDisposable
     }
 
     [Fact]
-    public async Task OpenApiRuntimePrototype_ProducesStableProjectionAcrossRepeatedRuns()
+    public async Task OpenApiRuntimePrototype_ProducesStableStateViewAcrossRepeatedRuns()
     {
         var workspace = CreateWorkspace("memora");
         _fileStore.Save(workspace, CreateCharterArtifact());
