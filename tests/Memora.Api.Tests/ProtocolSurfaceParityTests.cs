@@ -55,21 +55,25 @@ public sealed class ProtocolSurfaceParityTests
         var proposalRequest = new ProposeArtifactRequest("memora", "ADR-100", ArtifactType.Decision, CreateContent());
         using var proposalHttpResponse = await harness.Client.PostAsJsonAsync("/api/artifacts/proposals", proposalRequest);
         var apiProposal = await proposalHttpResponse.Content.ReadFromJsonAsync<ProposalResponse>();
-        var mcpProposal = harness.Mcp.ProposeArtifact(proposalRequest);
+        var mcpProposalResult = harness.Mcp.InvokeTool("propose_artifact", proposalRequest);
+        var mcpProposal = Assert.IsType<ProposalResponse>(mcpProposalResult.Payload);
 
         var outcomeRequest = new RecordOutcomeRequest("memora", "OUT-100", CreateContent());
         using var outcomeHttpResponse = await harness.Client.PostAsJsonAsync("/api/outcomes", outcomeRequest);
         var apiOutcome = await outcomeHttpResponse.Content.ReadFromJsonAsync<OutcomeResponse>();
-        var mcpOutcome = harness.Mcp.RecordOutcome(outcomeRequest);
+        var mcpOutcomeResult = harness.Mcp.InvokeTool("record_outcome", outcomeRequest);
+        var mcpOutcome = Assert.IsType<OutcomeResponse>(mcpOutcomeResult.Payload);
 
         Assert.Equal(HttpStatusCode.Accepted, proposalHttpResponse.StatusCode);
         Assert.NotNull(apiProposal);
         Assert.Equal(ArtifactStatus.Proposed, apiProposal.ResultingStatus);
+        Assert.True(mcpProposalResult.IsSuccess);
         Assert.Equal(apiProposal.ResultingStatus, mcpProposal.ResultingStatus);
 
         Assert.Equal(HttpStatusCode.Accepted, outcomeHttpResponse.StatusCode);
         Assert.NotNull(apiOutcome);
         Assert.Equal(ArtifactStatus.Proposed, apiOutcome.ResultingStatus);
+        Assert.True(mcpOutcomeResult.IsSuccess);
         Assert.Equal(apiOutcome.ResultingStatus, mcpOutcome.ResultingStatus);
         Assert.Equal(apiOutcome.OutcomeKind, mcpOutcome.OutcomeKind);
     }
