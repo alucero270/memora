@@ -76,9 +76,14 @@ public sealed class MemoraMcpServerTests
     {
         var server = new MemoraMcpServer(new TestAgentInteractionService());
 
-        var response = server.ProposeArtifact(
+        var result = server.InvokeTool(
+            "propose_artifact",
             new ProposeArtifactRequest("memora", "ADR-001", ArtifactType.Decision, CreateContent()));
 
+        Assert.True(result.IsSuccess);
+        Assert.Equal(nameof(ProposeArtifactRequest), result.RequestContract);
+        Assert.Equal(nameof(ProposalResponse), result.ResponseContract);
+        var response = Assert.IsType<ProposalResponse>(result.Payload);
         Assert.True(response.IsSuccess);
         Assert.Equal(ArtifactStatus.Proposed, response.ResultingStatus);
     }
