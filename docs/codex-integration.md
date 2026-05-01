@@ -17,7 +17,7 @@ That makes the current Memora path straightforward:
 
 - use repo docs and approved artifacts as the first grounding layer
 - use `Memora.Ui` for local inspection when a human-oriented view is helpful
-- use `Memora.Api` as the current structured companion surface
+- use `Memora.Api` as the current structured companion surface for the first operational Codex loop
 - do not claim a hosted Memora MCP transport until one is actually shipped
 
 ## Recommended Current Workflow
@@ -67,6 +67,23 @@ The current OpenAPI document is published at:
 From a Codex-oriented shell, that means structured Memora calls can be made
 with local HTTP tooling when helpful, while the repo and workspace files remain
 the higher-priority source of truth.
+
+## Codex External Workflow Loop
+
+The current Codex loop is:
+
+1. resolve the Memora project
+2. request deterministic context through the shared contract
+3. let Codex reason or plan outside Memora using that returned state view
+4. submit a reviewable proposal through the shared contract
+5. record a reviewable outcome through the same contract surface
+
+This is intentionally honest about current repo state:
+
+- MCP remains the architectural primary integration surface
+- the shared runtime-facing contract remains the governing boundary
+- the first operational Codex loop currently uses the companion OpenAPI host because the repo does not yet ship a hosted Memora MCP transport you can register directly with Codex
+- Codex still does not write canonical artifacts directly
 
 ## Suggested Codex Usage Pattern
 
@@ -124,6 +141,24 @@ Invoke-RestMethod `
   -ContentType "application/json" `
   -Body $body
 ```
+
+Run the full Codex external workflow without manual context copy and paste:
+
+```powershell
+./samples/workflows/codex-external-workflow.ps1 `
+  -ProjectId "demo-project" `
+  -TaskDescription "Validate the Codex external workflow against the shared Memora contract."
+```
+
+That sample workflow performs:
+
+- project lookup
+- deterministic context retrieval
+- proposal submission
+- outcome recording
+
+all through the current shared Memora contract exposed by the local companion
+API.
 
 ## Validation
 
