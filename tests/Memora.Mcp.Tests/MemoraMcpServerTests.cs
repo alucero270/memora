@@ -89,6 +89,23 @@ public sealed class MemoraMcpServerTests
     }
 
     [Fact]
+    public void RecordOutcome_ForwardsProposalOnlyBehavior()
+    {
+        var server = new MemoraMcpServer(new TestAgentInteractionService());
+
+        var result = server.InvokeTool(
+            "record_outcome",
+            new RecordOutcomeRequest("memora", "OUT-001", CreateContent()));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(nameof(RecordOutcomeRequest), result.RequestContract);
+        Assert.Equal(nameof(OutcomeResponse), result.ResponseContract);
+        var response = Assert.IsType<OutcomeResponse>(result.Payload);
+        Assert.True(response.IsSuccess);
+        Assert.Equal(ArtifactStatus.Proposed, response.ResultingStatus);
+    }
+
+    [Fact]
     public void InvokeTool_ForKnownTool_UsesPublishedContractsAndReturnsTypedPayload()
     {
         var server = new MemoraMcpServer(new TestAgentInteractionService());
