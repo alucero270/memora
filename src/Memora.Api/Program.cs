@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Memora.Api;
 using Memora.Api.Services;
 using Memora.Core.AgentInteraction;
@@ -6,6 +7,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
+
+// Pin web JSON defaults so the OpenAPI body and `ProjectStateViewSerializer.Serialize`
+// (used on the MCP path) stay byte-identical. Drift here silently desyncs runtime surfaces.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.PropertyNameCaseInsensitive = true;
+    options.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString;
+    options.SerializerOptions.WriteIndented = false;
+});
 
 var workspacesRootPath = builder.Configuration["Memora:WorkspacesRootPath"] ??
                          Environment.GetEnvironmentVariable("MEMORA_WORKSPACES_ROOT");

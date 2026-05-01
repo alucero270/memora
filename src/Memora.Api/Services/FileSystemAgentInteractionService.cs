@@ -459,6 +459,9 @@ public sealed class FileSystemAgentInteractionService : IAgentInteractionService
             .Select(issue => new AgentInteractionError(issue.Code, issue.DiagnosticMessage, issue.Path))
             .ToArray();
 
+    // The Normalize step here is load-bearing: it produces the same canonical ordering used by
+    // ProjectStateViewSerializer on the MCP path, which is what keeps the OpenAPI HTTP body
+    // byte-identical to the MCP-serialized bundle in RuntimeContractCompatibilityTests.
     private static AgentContextBundle MapBundle(GetContextRequest request, ContextBundle bundle) =>
         ProjectStateViewSerializer.Normalize(
             new(
