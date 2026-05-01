@@ -96,6 +96,10 @@ public sealed class MemoraMcpServerTests
         var payload = Assert.IsType<GetContextResponse>(result.Payload);
         Assert.True(payload.IsSuccess);
         Assert.NotNull(payload.Bundle);
+        Assert.Equal("memora", payload.Bundle.Request.ProjectId);
+        Assert.Equal(
+            [AgentContextLayerKind.Layer1, AgentContextLayerKind.Layer2, AgentContextLayerKind.Layer3],
+            payload.Bundle.Layers.Select(layer => layer.Kind).ToArray());
     }
 
     [Fact]
