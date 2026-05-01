@@ -24,6 +24,7 @@ Docs must describe current implementation honestly and keep roadmap work clearly
 - `claude-integration.md` for the current Claude-oriented setup guidance
 - `codex-integration.md` for the current Codex-oriented setup guidance
 - `chatgpt-integration.md` for the current ChatGPT-oriented read-only guidance
+- `remote-conversational-planning-gap-analysis.md` for the gap between the current external workflow proof and the desired remote planning-write workflow
 - `delivery-process.md` for milestone closeout and stacked PR cleanup guidance
 - `milestones.md` for roadmap sequencing
 - `repo-structure.md` for folder-level navigation
