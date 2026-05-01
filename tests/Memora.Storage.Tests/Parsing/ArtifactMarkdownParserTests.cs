@@ -8,10 +8,10 @@ public sealed class ArtifactMarkdownParserTests
     private readonly ArtifactMarkdownParser _parser = new();
 
     [Theory]
-    [InlineData("samples/workspaces/demo-project/drafts/decision/ADR-004.r0001.md", ArtifactType.Decision, ArtifactStatus.Draft)]
-    [InlineData("samples/workspaces/demo-project/drafts/decision/ADR-005.r0001.md", ArtifactType.Decision, ArtifactStatus.Draft)]
-    [InlineData("samples/workspaces/demo-project/drafts/decision/ADR-006.r0001.md", ArtifactType.Decision, ArtifactStatus.Draft)]
-    [InlineData("samples/workspaces/demo-project/drafts/constraint/CNS-002.r0001.md", ArtifactType.Constraint, ArtifactStatus.Draft)]
+    [InlineData("samples/workspaces/demo-project/drafts/decision/ADR-007.r0001.md", ArtifactType.Decision, ArtifactStatus.Draft)]
+    [InlineData("samples/workspaces/demo-project/drafts/decision/ADR-008.r0001.md", ArtifactType.Decision, ArtifactStatus.Draft)]
+    [InlineData("samples/workspaces/demo-project/drafts/decision/ADR-009.r0001.md", ArtifactType.Decision, ArtifactStatus.Draft)]
+    [InlineData("samples/workspaces/demo-project/drafts/constraint/CNS-005.r0001.md", ArtifactType.Constraint, ArtifactStatus.Draft)]
     [InlineData("samples/workspaces/demo-project/drafts/outcome/OUT-001.r0001.md", ArtifactType.Outcome, ArtifactStatus.Draft)]
     [InlineData("samples/workspaces/demo-project/drafts/question/QST-004.r0001.md", ArtifactType.Question, ArtifactStatus.Draft)]
     public void DemoProjectDraftArtifacts_ParseAndValidate(string relativePath, ArtifactType expectedType, ArtifactStatus expectedStatus)
