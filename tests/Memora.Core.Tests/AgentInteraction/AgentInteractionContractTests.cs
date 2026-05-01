@@ -105,7 +105,7 @@ public sealed class AgentInteractionContractTests
     }
 
     [Fact]
-    public void ProjectStateProjection_UsesExistingGetContextContractShape()
+    public void ProjectStateView_UsesExistingGetContextContractShape()
     {
         var contract = ExternalRuntimeContract.Current;
 

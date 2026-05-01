@@ -7,7 +7,7 @@ namespace Memora.Core.Tests.AgentInteraction;
 public sealed class ProjectStateViewSerializerTests
 {
     [Fact]
-    public void Normalize_SortsArtifactCollectionsForStableProjectionOutput()
+    public void Normalize_SortsArtifactCollectionsForStableStateViewOutput()
     {
         var bundle = CreateBundle();
 

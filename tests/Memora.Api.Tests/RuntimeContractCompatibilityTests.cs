@@ -92,7 +92,7 @@ public sealed class RuntimeContractCompatibilityTests : IDisposable
     }
 
     [Fact]
-    public async Task PublishedRuntimeSurfaces_ProduceStableProjectionAcrossRepeatedRuns()
+    public async Task PublishedRuntimeSurfaces_ProduceStableStateViewAcrossRepeatedRuns()
     {
         var workspace = CreateWorkspace("memora");
         _fileStore.Save(workspace, CreateCharterArtifact());
