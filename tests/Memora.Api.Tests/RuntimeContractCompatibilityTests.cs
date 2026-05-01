@@ -441,7 +441,17 @@ public sealed class RuntimeContractCompatibilityTests : IDisposable
 
         public Task<RuntimeContextCompatibilityResult> GetContextAsync(GetContextRequest request)
         {
-            var response = _server.GetContext(request);
+            var invocation = _server.InvokeTool("get_context", request);
+            var response = invocation.Payload as GetContextResponse;
+            if (!invocation.IsSuccess || response is null)
+            {
+                return Task.FromResult(new RuntimeContextCompatibilityResult(
+                    false,
+                    [],
+                    string.Empty,
+                    invocation.Errors));
+            }
+
             var artifactIds = response.Bundle is null
                 ? []
                 : response.Bundle.Layers
