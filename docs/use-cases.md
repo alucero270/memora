@@ -81,3 +81,42 @@ Without this workflow, a team often loses important context:
 
 Memora is strongest when it preserves what the project knows while still
 leaving room for thoughtful future planning.
+
+## Remote Planning Conversations That Can Update Memora
+
+Memora should eventually support a workflow where an operator can hold a
+planning conversation from a remote client such as ChatGPT and have that
+conversation create reviewable Memora artifacts.
+
+The intended workflow is:
+
+1. resolve the target project remotely
+2. retrieve grounded Memora context for the planning topic
+3. continue the planning conversation in the remote client
+4. submit a reviewable proposal or update back into Memora
+5. preserve approval and canonical-truth boundaries
+
+### Why This Is Distinct
+
+This is not just another transport variation of the local external workflow.
+
+It adds requirements around:
+
+- off-machine reachability
+- safe remote write paths
+- state freshness and revision handling
+- operator review after remote conversation-driven writes
+
+### Why This Needs Explicit Planning
+
+This use case is important enough to shape future milestone boundaries because
+it can easily pull in:
+
+- hosted or remotely reachable service design
+- authentication and client access rules
+- write-path limits by artifact type
+- review workflow expectations
+
+The product value here is not merely "connect another client." The value is
+"make remote planning conversations durable and governable without turning chat
+output directly into truth."
