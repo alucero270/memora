@@ -38,6 +38,9 @@ public static class ProjectStateViewSerializer
                 .ToArray());
     }
 
+    // Uses JsonSerializerDefaults.Web so MCP-serialized output stays byte-identical to the
+    // OpenAPI HTTP body. Memora.Api/Program.cs pins ConfigureHttpJsonOptions to the same
+    // defaults; changing either side breaks the runtime contract compatibility test.
     public static string Serialize(AgentContextBundle bundle) =>
         JsonSerializer.Serialize(Normalize(bundle), SerializerOptions);
 
