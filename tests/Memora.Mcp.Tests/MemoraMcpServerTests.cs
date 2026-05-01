@@ -84,6 +84,48 @@ public sealed class MemoraMcpServerTests
     }
 
     [Fact]
+    public void InvokeTool_ForKnownTool_UsesPublishedContractsAndReturnsTypedPayload()
+    {
+        var server = new MemoraMcpServer(new TestAgentInteractionService());
+
+        var result = server.InvokeTool("get_context", new GetContextRequest("memora", "Prepare milestone 3 context."));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(nameof(GetContextRequest), result.RequestContract);
+        Assert.Equal(nameof(GetContextResponse), result.ResponseContract);
+        var payload = Assert.IsType<GetContextResponse>(result.Payload);
+        Assert.True(payload.IsSuccess);
+        Assert.NotNull(payload.Bundle);
+    }
+
+    [Fact]
+    public void InvokeTool_ForUnknownTool_ReturnsStableDiagnostic()
+    {
+        var server = new MemoraMcpServer(new TestAgentInteractionService());
+
+        var result = server.InvokeTool("debug_context", new GetContextRequest("memora", "Prepare milestone 3 context."));
+
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.Payload);
+        Assert.Equal("mcp.tool.not_found", result.Errors[0].Code);
+        Assert.Equal("name", result.Errors[0].Path);
+    }
+
+    [Fact]
+    public void InvokeTool_ForWrongRequestContract_ReturnsStableDiagnostic()
+    {
+        var server = new MemoraMcpServer(new TestAgentInteractionService());
+
+        var result = server.InvokeTool("get_context", CreateContent());
+
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.Payload);
+        Assert.Equal(nameof(GetContextRequest), result.RequestContract);
+        Assert.Equal("mcp.tool.request.invalid", result.Errors[0].Code);
+        Assert.Equal("arguments", result.Errors[0].Path);
+    }
+
+    [Fact]
     public void Errors_AreSurfacedWithoutProtocolLayerRewriting()
     {
         var server = new MemoraMcpServer(new FailingAgentInteractionService());
@@ -92,6 +134,31 @@ public sealed class MemoraMcpServerTests
 
         Assert.False(response.IsSuccess);
         Assert.Equal("context.validation", response.Errors[0].Code);
+    }
+
+    [Fact]
+    public void ToolExecutionExceptions_ReturnStableDiagnostics()
+    {
+        var server = new MemoraMcpServer(new ThrowingAgentInteractionService());
+
+        var response = server.GetContext(new GetContextRequest("memora", "Prepare milestone 3 context."));
+
+        Assert.False(response.IsSuccess);
+        Assert.Equal("mcp.tool.execution.failed", response.Errors[0].Code);
+        Assert.Equal("request", response.Errors[0].Path);
+    }
+
+    [Fact]
+    public void ResourceExecutionExceptions_ReturnStableDiagnostics()
+    {
+        var server = new MemoraMcpServer(new ThrowingAgentInteractionService());
+
+        var response = server.ReadResource("memora://projects/memora");
+
+        Assert.False(response.IsSuccess);
+        Assert.NotNull(response.Payload);
+        Assert.Equal("mcp.resource.read.failed", response.Errors[0].Code);
+        Assert.Equal("project_id", response.Errors[0].Path);
     }
 
     private static ArtifactProposalContent CreateContent() =>
@@ -185,5 +252,23 @@ public sealed class MemoraMcpServerTests
 
         public OutcomeResponse RecordOutcome(RecordOutcomeRequest request) =>
             new(request.ProjectId, request.ArtifactId, ArtifactStatus.Proposed, 0, OutcomeKind.Mixed, [new AgentInteractionError("outcome.validation", "Invalid outcome.", "body")]);
+    }
+
+    private sealed class ThrowingAgentInteractionService : IAgentInteractionService
+    {
+        public ProjectLookupResponse GetProject(string projectId) =>
+            throw new InvalidOperationException("Lookup transport was unavailable.");
+
+        public GetContextResponse GetContext(GetContextRequest request) =>
+            throw new InvalidOperationException("Context transport was unavailable.");
+
+        public ProposalResponse ProposeArtifact(ProposeArtifactRequest request) =>
+            throw new InvalidOperationException("Proposal transport was unavailable.");
+
+        public ProposalResponse ProposeUpdate(ProposeUpdateRequest request) =>
+            throw new InvalidOperationException("Update transport was unavailable.");
+
+        public OutcomeResponse RecordOutcome(RecordOutcomeRequest request) =>
+            throw new InvalidOperationException("Outcome transport was unavailable.");
     }
 }
